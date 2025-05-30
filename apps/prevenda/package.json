@@ -1,0 +1,48 @@
+{
+  "name": "prevenda",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun --bun react-router build",
+    "dev": "bun --bun react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "generate": "bun --bun drizzle-kit generate",
+    "typecheck": "react-router typegen && tsc"
+  },
+  "dependencies": {
+    "@react-router/node": "^7.2.0",
+    "@react-router/serve": "^7.2.0",
+    "class-variance-authority": "^0.7.1",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.39.3",
+    "drizzle-zod": "^0.7.0",
+    "envalid": "^8.0.0",
+    "isbot": "^5.1.23",
+    "lucide-react": "^0.475.0",
+    "nanoid": "^5.1.2",
+    "postgres": "^3.4.5",
+    "radix-ui": "^1.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.2.0",
+    "tailwind-merge": "^3.0.2",
+    "zod": "^3.24.2",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@react-router/dev": "^7.2.0",
+    "@tailwindcss/vite": "^4.0.9",
+    "@types/bun": "^1.2.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "drizzle-kit": "^0.30.5",
+    "react-router-devtools": "^1.1.6",
+    "tailwindcss": "^4.0.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.14",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}

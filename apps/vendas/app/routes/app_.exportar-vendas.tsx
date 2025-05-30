@@ -1,0 +1,75 @@
+import type { Route } from "./+types/app_.exportar-vendas"
+import { format } from "date-fns"
+import XLSX from "xlsx"
+
+import { getAdminOrRedirect } from "~/lib/authGuard"
+import { extractDateFromRequest } from "~/lib/extractDateFromRequest"
+import { autofitColumns, excelCurrency } from "~/lib/XLSXUtils"
+
+import SalesService from "~/services/SalesService"
+
+export async function loader({ request }: Route.LoaderArgs) {
+  await getAdminOrRedirect(request)
+
+  const { month, year } = extractDateFromRequest(request)
+
+  const sales = await SalesService.getByMonth(month, year)
+
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.sheet_new()
+
+  XLSX.utils.sheet_add_aoa(ws, [
+    [
+      "Data",
+      "Vendedor",
+      "Campanha",
+      "Área",
+      "Tipo de Captação",
+      "Recompra",
+      "Cliente",
+      "Parte Adversa",
+      "Valor Estimado",
+      "Indicação",
+      "Comentários",
+    ],
+  ])
+
+  for (const sale of sales) {
+    XLSX.utils.sheet_add_aoa(
+      ws,
+      [
+        [
+          format(sale.date, "dd/MM/yyyy"),
+          sale.seller.fullName || sale.seller.name,
+          sale.campaign.name,
+          sale.origin?.name || "Origem não especificada",
+          sale.captationType === "ATIVO" ? "Ativo" : "Passivo",
+          sale.isRepurchase ? "Sim" : "Não",
+          sale.client,
+          sale.adverseParty,
+          excelCurrency(Number(sale.estimatedValue) || 0),
+          sale.indication,
+          sale.comments,
+        ],
+      ],
+      { origin: -1 },
+    )
+  }
+  autofitColumns(ws, XLSX.utils.decode_range("A1:Z1000"))
+
+  XLSX.utils.book_append_sheet(wb, ws, "Relatório")
+  const fileData = XLSX.write(wb, {
+    bookType: "xlsx",
+    type: "buffer",
+    cellStyles: true,
+  })
+
+  return new Response(fileData, {
+    headers: {
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+      "Content-Disposition": `attachment; filename="vendas-${month}-${year}.xlsx"`,
+    },
+  })
+}

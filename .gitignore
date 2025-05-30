@@ -1,0 +1,6 @@
+node_modules
+
+# ignore all env files for all subdirectories, but allow .env.example
+*.env
+*.env.*
+!*.env.example

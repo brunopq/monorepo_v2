@@ -1,0 +1,14 @@
+{
+  "name": "my-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "bun --bun run --filter '*' dev",
+    "dev:auauth": "bun --bun run --filter auauth dev",
+    "dev:vendas": "bun --bun run --filter vendas dev",
+    "dev:prevenda": "bun --bun run --filter prevenda dev"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
