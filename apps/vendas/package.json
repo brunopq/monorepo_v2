@@ -7,8 +7,6 @@
     "build": "bun build.ts",
     "dev": "react-router dev",
     "generate": "drizzle-kit generate",
-    "lint": "biome lint",
-    "format": "biome format --write",
     "start": "cd dist && node ./index.js",
     "typecheck": "react-router typegen && tsc"
   },
@@ -53,7 +51,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.2",
     "@react-router/dev": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/bun": "^1.2.2",

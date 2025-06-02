@@ -12,5 +12,5 @@ const pool = new Pool({ connectionString: DATABASE_URL })
 export const db = drizzle({ schema, casing: "snake_case", client: pool })
 
 await migrate(db, {
-	migrationsFolder: "./drizzle",
+  migrationsFolder: "./drizzle",
 })

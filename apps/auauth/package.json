@@ -4,7 +4,6 @@
   "module": "esnext",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "format": "bunx biome format --write src",
     "generate": "bun drizzle-kit generate"
   },
   "dependencies": {
@@ -18,7 +17,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
     "@types/bun": "^1.2.4",
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.5",
