@@ -1,7 +1,7 @@
 import type { Route } from "./+types"
 import { z } from "zod"
 
-import { submittedFieldSchema } from "~/.server/services/db/schema/submission"
+import { submittedFieldSchema } from "~/.server/db/schema/submission"
 import SubmissionService from "~/.server/services/SubmissionService"
 
 const submittedFieldSchema2 = submittedFieldSchema.extend({

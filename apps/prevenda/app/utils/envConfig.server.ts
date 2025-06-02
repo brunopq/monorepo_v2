@@ -8,4 +8,6 @@ export const env = cleanEnv(process.env, {
     choices: ["development", "production"],
   }),
   DB_URL: url(),
+  AUTH_URL: url(),
+  COOKIE_SECRET: str(),
 })

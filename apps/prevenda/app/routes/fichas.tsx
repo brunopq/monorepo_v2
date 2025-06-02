@@ -1,16 +1,22 @@
 import { Form, Link, redirect } from "react-router"
 import type { Route } from "./+types/fichas"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
+import { getToken, getUserOrRedirect } from "~/.server/cookies/authSession"
 import TemplateService from "~/.server/services/TemplateService"
 import SubmissionService from "~/.server/services/SubmissionService"
 
 import { Button } from "~/components/ui/button"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { Badge, SubmissionStateBadge } from "~/components/ui/badge"
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const user = await getUserOrRedirect(request)
+  // biome-ignore lint/style/noNonNullAssertion: get user or redirect will throw if user is not found
+  const token = (await getToken(request))!
+
   const templates = await TemplateService.listTemplates()
-  const userSubmissions = await SubmissionService.listByUser("123")
+  const userSubmissions = await SubmissionService.listByUser(user.id, token)
 
   return {
     templates,
@@ -19,6 +25,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const user = await getUserOrRedirect(request)
+
   const formData = await request.formData()
   const templateId = formData.get("templateId")
 
@@ -28,7 +36,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const createdSumission = await SubmissionService.create({
     templateId,
-    submitterId: "123",
+    submitterId: user.id,
   })
 
   return redirect(`edit/${createdSumission.id}`)
@@ -41,9 +49,9 @@ export default function Fichas({ loaderData }: Route.ComponentProps) {
     <div>
       <section>
         <header className="mb-8 flex items-center justify-between">
-          <h1 className="font-semibold text-2xl">
+          <h2 className="font-semibold font-serif text-2xl text-primary-100">
             Templates disponíveis ({templates.length})
-          </h1>
+          </h2>
         </header>
         <ul className="space-y-6">
           {templates.map((template) => (
@@ -66,14 +74,16 @@ export default function Fichas({ loaderData }: Route.ComponentProps) {
 
       <section className="mt-12">
         <header className="mb-8 flex items-center justify-between">
-          <h1 className="font-semibold text-2xl">Suas fichas:</h1>
+          <h2 className="font-semibold font-serif text-2xl text-primary-100">
+            Suas fichas:
+          </h2>
         </header>
 
         <ul className="space-y-6">
           {userSubmissions.map((submission) => (
             <li
               key={submission.id}
-              className="grid grid-cols-[1fr_auto] items-center"
+              className="grid grid-cols-[1fr_auto] gap-4 rounded-sm border border-zinc-50 bg-zinc-50/50 p-1 pl-3 shadow dark:border-zinc-800 dark:bg-zinc-800/25"
             >
               <span>
                 <p>
@@ -90,11 +100,35 @@ export default function Fichas({ loaderData }: Route.ComponentProps) {
                     locale: ptBR,
                   })}
                 </p>
+                <p>
+                  <strong className="font-semibold text-zinc-300/85">
+                    Última edição:{" "}
+                  </strong>
+                  {format(submission.createdAt, "dd 'de' MMMM, yyyy", {
+                    locale: ptBR,
+                  })}
+                </p>
+                <p>
+                  <strong className="font-semibold text-zinc-300/85">
+                    Status:{" "}
+                  </strong>
+                  <SubmissionStateBadge state={submission.state} />
+                </p>
               </span>
 
-              <Button asChild>
-                <Link to={`edit/${submission.id}`}>Continuar preenchendo</Link>
-              </Button>
+              <div className="grid grid-rows-3 gap-1">
+                <Button variant="secondary" size="sm" asChild>
+                  <Link to={{ pathname: submission.id, search: "?mode=view" }}>
+                    Visualizar
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to={{ pathname: submission.id, search: "?mode=edit" }}>
+                    Continuar preenchendo
+                  </Link>
+                </Button>
+                <Button size="sm">Enviar para revisão</Button>
+              </div>
             </li>
           ))}
         </ul>

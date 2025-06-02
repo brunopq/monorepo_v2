@@ -1,7 +1,7 @@
 import { AsteriskIcon } from "lucide-react"
 import { format } from "date-fns"
 
-import type { TemplateField } from "~/.server/services/db/schema/template"
+import type { TemplateField } from "~/.server/db/schema/template"
 
 import { Input } from "../ui/input"
 import { Textarea } from "../ui/textarea"

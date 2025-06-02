@@ -5,10 +5,10 @@ import type {
   NewTemplateField,
   Template,
   TemplateField,
-} from "../db/schema/template"
-import { submission, template, templateField } from "../db/schema"
+} from "../../db/schema/template"
+import { submission, template, templateField } from "../../db/schema"
 
-import { db } from "../db"
+import { db } from "../../db"
 
 export type TemplateWithFields = Template & {
   fields: TemplateField[]

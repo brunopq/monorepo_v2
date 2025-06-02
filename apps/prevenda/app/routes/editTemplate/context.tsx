@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, type JSX } from "react"
 import { useFetcher } from "react-router"
 
-import type { FieldType } from "~/.server/services/db/schema/fieldType"
+import type { FieldType } from "~/.server/db/schema/fieldType"
 import type { TemplateWithFields } from "~/.server/services/TemplateService"
 
 import type { action } from "./action"

@@ -1,7 +1,8 @@
+import { getUserOrRedirect } from "~/.server/cookies/authSession"
 import type { Route } from "./+types/templates"
 import { Form, Link, redirect } from "react-router"
 
-import type { Template } from "~/.server/services/db/schema/template"
+import type { Template } from "~/.server/db/schema/template"
 import TemplateService from "~/.server/services/TemplateService"
 
 import { Button } from "~/components/ui/button"
@@ -11,10 +12,14 @@ export function meta() {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  await getUserOrRedirect(request, { redirectPath: "/", roles: ["ADMIN"] })
+
   return await TemplateService.listTemplates()
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  await getUserOrRedirect(request, { redirectPath: "/", roles: ["ADMIN"] })
+
   const createdTemplate = await TemplateService.createTemplate({
     name: "Novo template",
     description: "Detalhes sobre o template",

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."submission_states" AS ENUM('draft', 'waiting_review', 'changes_requested', 'approved');--> statement-breakpoint
+ALTER TABLE "submissions" ADD COLUMN "state" "submission_states" DEFAULT 'draft' NOT NULL;

@@ -9,6 +9,7 @@
   --color-neutral-*: initial;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: "PT Serif", serif;
 
   --color-primary-50: var(--color-lime-50);
   --color-primary-100: var(--color-lime-100);

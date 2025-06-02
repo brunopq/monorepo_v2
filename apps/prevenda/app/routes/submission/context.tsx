@@ -2,15 +2,15 @@ import type { Route } from "./+types"
 import { useFetcher } from "react-router"
 import { createContext, useContext, useState, type JSX } from "react"
 
-import type { SubmittedField } from "~/.server/services/db/schema/submission"
-import type { TemplateField } from "~/.server/services/db/schema/template"
+import type { SubmittedField } from "~/.server/db/schema/submission"
+import type { TemplateField } from "~/.server/db/schema/template"
 import type { TemplateWithFields } from "~/.server/services/TemplateService"
 
 import type { FieldWithValue } from "~/components/Form/FormField"
 
 import type { action } from "./action"
 
-type EditSubmissionContext = {
+type SubmissionContext = {
   template: TemplateWithFields
   filledFormFields: FieldWithValue[]
 
@@ -19,14 +19,14 @@ type EditSubmissionContext = {
   setFieldValue: (id: string, value: FieldWithValue["value"]) => void
 }
 
-const editSubmissionContext = createContext<EditSubmissionContext | null>(null)
+const submissionContext = createContext<SubmissionContext | null>(null)
 
-export function useEditSubmissionContext() {
-  const ctx = useContext(editSubmissionContext)
+export function useSubmissionContext() {
+  const ctx = useContext(submissionContext)
 
   if (!ctx) {
     throw new Error(
-      "`useEditSubmissionContext` should be used inside the `EditSubmissionContextProvider`",
+      "`useSubmissionContext` should be used inside the `SubmissionContextProvider`",
     )
   }
 
@@ -78,15 +78,15 @@ const toDomain = (
   throw new Error("unreachable")
 }
 
-type EditSubmissionContextProviderProps = {
-  initialSubmission: Route.ComponentProps["loaderData"]
+type SubmissionContextProviderProps = {
+  initialSubmission: Route.ComponentProps["loaderData"]["submission"]
   children: JSX.Element
 }
 
-export function EditSubmissionContextProvider({
+export function SubmissionContextProvider({
   initialSubmission,
   children,
-}: EditSubmissionContextProviderProps) {
+}: SubmissionContextProviderProps) {
   const syncFetcher = useFetcher<typeof action>()
 
   const [template, _] = useState(initialSubmission.template)
@@ -146,7 +146,7 @@ export function EditSubmissionContextProvider({
     })
   }
 
-  const setFieldValue: EditSubmissionContext["setFieldValue"] = (id, value) => {
+  const setFieldValue: SubmissionContext["setFieldValue"] = (id, value) => {
     setFilledFormFields((prev) =>
       prev.map((field) => {
         if (field.id === id) {
@@ -172,7 +172,7 @@ export function EditSubmissionContextProvider({
   }
 
   return (
-    <editSubmissionContext.Provider
+    <submissionContext.Provider
       value={{
         template,
         filledFormFields,
@@ -182,6 +182,6 @@ export function EditSubmissionContextProvider({
       }}
     >
       {children}
-    </editSubmissionContext.Provider>
+    </submissionContext.Provider>
   )
 }

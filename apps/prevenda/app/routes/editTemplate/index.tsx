@@ -13,8 +13,8 @@ import {
   Trash2Icon,
 } from "lucide-react/icons"
 
-import type { FieldType } from "~/.server/services/db/schema/fieldType"
-import type { TemplateField } from "~/.server/services/db/schema/template"
+import type { FieldType } from "~/.server/db/schema/fieldType"
+import type { TemplateField } from "~/.server/db/schema/template"
 
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"

@@ -5,6 +5,7 @@ import {
   templateFieldRelations,
 } from "./template"
 import {
+  submissionStates,
   submission,
   submissionRelations,
   submittedField,
@@ -17,6 +18,7 @@ export {
   templateRelations,
   templateField,
   templateFieldRelations,
+  submissionStates,
   submission,
   submissionRelations,
   submittedField,

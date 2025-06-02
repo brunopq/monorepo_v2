@@ -6,7 +6,7 @@ import { createMatcher } from "~/utils/actionMatcher"
 import {
   templateFieldSchema,
   templateSchema,
-} from "~/.server/services/db/schema/template"
+} from "~/.server/db/schema/template"
 import TemplateService from "~/.server/services/TemplateService"
 
 const templateWithFieldsSchema = templateSchema.extend({
