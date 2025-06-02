@@ -118,7 +118,6 @@ function AdminSubmissionsView() {
       <main>
         <SubmissionsBoard />
       </main>
-
     </div>
   )
 }
@@ -126,20 +125,38 @@ function AdminSubmissionsView() {
 function SubmissionsBoard() {
   const { submissions } = useLoaderData<typeof loader>()
 
-  const draft = submissions.filter(s => s.state === 'draft')
-  const waitingReview = submissions.filter(s => s.state === 'waiting_review')
-  const changesRequested = submissions.filter(s => s.state === 'changes_requested')
-  const approved = submissions.filter(s => s.state === 'approved')
+  const draft = submissions.filter((s) => s.state === "draft")
+  const waitingReview = submissions.filter((s) => s.state === "waiting_review")
+  const changesRequested = submissions.filter(
+    (s) => s.state === "changes_requested",
+  )
+  const approved = submissions.filter((s) => s.state === "approved")
 
   return (
-    <div className="flex overflow-x-auto gap-4">
-      <SubmissionBoardSection color="red" name="Rascunhos" submissions={draft} />
+    <div className="flex gap-4 overflow-x-auto">
+      <SubmissionBoardSection
+        color="red"
+        name="Rascunhos"
+        submissions={draft}
+      />
 
-      <SubmissionBoardSection color="blue" name="Aguardando Revisão" submissions={waitingReview} />
+      <SubmissionBoardSection
+        color="blue"
+        name="Aguardando Revisão"
+        submissions={waitingReview}
+      />
 
-      <SubmissionBoardSection color="yellow" name="Esperando Alterações" submissions={changesRequested} />
+      <SubmissionBoardSection
+        color="yellow"
+        name="Esperando Alterações"
+        submissions={changesRequested}
+      />
 
-      <SubmissionBoardSection color="green" name="Aprovado" submissions={approved} />
+      <SubmissionBoardSection
+        color="green"
+        name="Aprovado"
+        submissions={approved}
+      />
     </div>
   )
 }
@@ -150,25 +167,27 @@ type SubmissionBoardSectionProps = {
   submissions: FullSubmission[]
 }
 
-function SubmissionBoardSection({ name, color, submissions }: SubmissionBoardSectionProps) {
+function SubmissionBoardSection({
+  name,
+  color,
+  submissions,
+}: SubmissionBoardSectionProps) {
   return (
-    <section className="min-w-sm shadow-lg bg-zinc-950/25 rounded-md grow">
-      <header
-        className="p-1">
-        <h3 className="font-semibold text-zinc-300 font-serif">{name}</h3>
+    <section className="min-w-sm grow rounded-md bg-zinc-950/25 shadow-lg">
+      <header className="p-1">
+        <h3 className="font-semibold font-serif text-zinc-300">{name}</h3>
       </header>
 
-      <hr className="border-zinc-800 mx-1" />
+      <hr className="mx-1 border-zinc-800" />
 
       <div className="p-1">
-        {submissions.map(s => (
+        {submissions.map((s) => (
           <SubmissionCard key={s.id} submission={s} />
         ))}
       </div>
     </section>
   )
 }
-
 
 function SellerSubmissionsView() {
   return <div>Seller submissions</div>
@@ -197,18 +216,22 @@ function SubmissionCard({ submission }: SubmissionCardProps) {
 
         <span className="flex flex-1 justify-end gap-1">
           <Button asChild size="sm" variant="secondary">
-            <Link to={{
-              pathname: `/fichas/${submission.id}`,
-              search: 'mode=view'
-            }}>
+            <Link
+              to={{
+                pathname: `/fichas/${submission.id}`,
+                search: "mode=view",
+              }}
+            >
               Ver ficha
             </Link>
           </Button>
           <Button asChild size="sm">
-            <Link to={{
-              pathname: `/fichas/${submission.id}`,
-              search: 'mode=review'
-            }}>
+            <Link
+              to={{
+                pathname: `/fichas/${submission.id}`,
+                search: "mode=review",
+              }}
+            >
               Revisar
             </Link>
           </Button>

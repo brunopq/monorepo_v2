@@ -1,5 +1,5 @@
 import { createSelectSchema, createInsertSchema } from "drizzle-zod"
-import type { z } from "zod"
+import type { z } from "zod/v4"
 import {
   boolean,
   check,

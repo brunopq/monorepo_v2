@@ -10,10 +10,7 @@ import { SubmissionStateBadge } from "~/components/ui/badge"
 
 import { loader, type Mode } from "./loader"
 import { action } from "./action"
-import {
-  SubmissionContextProvider,
-  useSubmissionContext,
-} from "./context"
+import { SubmissionContextProvider, useSubmissionContext } from "./context"
 
 export { loader, action }
 
@@ -28,20 +25,26 @@ export default function FillForm({ loaderData }: Route.ComponentProps) {
 }
 
 const SubmissionPage: Record<Mode, JSX.Element> = {
-  edit:
+  edit: (
     <>
       <EditSubmissionHeader />
 
       <FilledFieldsPreview />
 
       <FormFields />
-    </>,
-  review: <><h1>sei la meu kkkkkkkkk</h1></>,
-  view:
+    </>
+  ),
+  review: (
+    <>
+      <h1>sei la meu kkkkkkkkk</h1>
+    </>
+  ),
+  view: (
     <>
       <ViewSubmissionHeader />
       <FilledFieldsPreview />
     </>
+  ),
 }
 
 function ViewSubmissionHeader() {
