@@ -6,6 +6,7 @@ import type { Template } from "~/.server/db/schema/template"
 import TemplateService from "~/.server/services/TemplateService"
 
 import { Button } from "~/components/ui/button"
+import BasicNav from "~/components/BasicNav"
 
 export function meta() {
   return [{ title: "" }]
@@ -31,6 +32,7 @@ export async function action({ request }: Route.ActionArgs) {
 export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <>
+      <BasicNav />
       <header className="mb-8 flex items-center justify-between">
         <h1 className="font-semibold text-2xl">
           Templates ({loaderData.length})

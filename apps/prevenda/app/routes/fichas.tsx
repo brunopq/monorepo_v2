@@ -9,6 +9,7 @@ import SubmissionService from "~/.server/services/SubmissionService"
 
 import { Button } from "~/components/ui/button"
 import { Badge, SubmissionStateBadge } from "~/components/ui/badge"
+import BasicNav from "~/components/BasicNav"
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUserOrRedirect(request)
@@ -46,7 +47,9 @@ export default function Fichas({ loaderData }: Route.ComponentProps) {
   const { templates, userSubmissions } = loaderData
 
   return (
-    <div>
+    <>
+      <BasicNav />
+
       <section>
         <header className="mb-8 flex items-center justify-between">
           <h2 className="font-semibold font-serif text-2xl text-primary-100">
@@ -133,6 +136,6 @@ export default function Fichas({ loaderData }: Route.ComponentProps) {
           ))}
         </ul>
       </section>
-    </div>
+    </>
   )
 }
