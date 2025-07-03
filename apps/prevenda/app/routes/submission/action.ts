@@ -1,11 +1,11 @@
 import type { Route } from "./+types"
-import { z } from "zod"
+import { z } from "zod/v4"
 
 import { submittedFieldSchema } from "~/.server/db/schema/submission"
 import SubmissionService from "~/.server/services/SubmissionService"
 
 const submittedFieldSchema2 = submittedFieldSchema.extend({
-  dateValue: z.coerce.date({ coerce: true }).nullable(),
+  dateValue: z.coerce.date().nullable(),
 })
 
 export async function action({ request, params }: Route.ActionArgs) {
