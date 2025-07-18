@@ -56,9 +56,11 @@ export async function getAdminOrRedirect(
 export async function assertUser(
   session: Session<SessionData>,
   redirectPath = "/",
-): Promise<DomainUser> {
+) /*: Promise<DomainUser> */ {
+  console.log(session.data)
   const user = session.data.user
-  if (!user) {
+  const jwt = session.data.jwt
+  if (!jwt || !user) {
     throw redirect(redirectPath, {
       headers: {
         "Set-Cookie": await destroySession(session),
@@ -66,13 +68,14 @@ export async function assertUser(
     })
   }
   try {
-    const dbUser = await AuthService.getByName(user.name)
+    const remoteUser = await AuthService.validateJWT(jwt)
+    // const dbUser = await AuthService.getByName(user.name)
 
-    if (!dbUser.accountActive) {
+    if (!remoteUser?.accountActive) {
       throw redirect(redirectPath)
     }
 
-    return dbUser
+    return remoteUser
   } catch (e) {
     throw redirect(redirectPath)
   }

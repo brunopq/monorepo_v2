@@ -11,6 +11,7 @@ import type {
 import CampaignService from "./CampaignService"
 import { utc } from "@date-fns/utc"
 import { validateDate } from "~/lib/verifyMonthAndYear"
+import { s } from "node_modules/vite/dist/node/types.d-aGj9QkWt"
 
 export type DomainSale = DbSale
 export type NewSale = DbNewSale

@@ -1,12 +1,13 @@
 {
-  "name": "vendas",
   "private": true,
-  "sideEffects": false,
+  "name": "vendas",
   "type": "module",
   "scripts": {
     "build": "bun build.ts",
     "dev": "react-router dev",
     "generate": "drizzle-kit generate",
+    "lint": "biome lint",
+    "format": "biome format --write",
     "start": "cd dist && node ./index.js",
     "typecheck": "react-router typegen && tsc"
   },
@@ -25,6 +26,7 @@
     "@react-router/node": "^7.0.0",
     "@react-router/serve": "^7.0.0",
     "@tanstack/react-table": "^8.20.5",
+    "@ts-rest/core": "^3.52.1",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -51,14 +53,15 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.2",
     "@react-router/dev": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/bun": "^1.2.2",
     "@types/d3": "^7.4.3",
     "@types/node": "^22.6.1",
     "@types/papaparse": "^5.3.15",
-    "@types/react": "^19.1.5",
-    "@types/react-dom": "^19.1.5",
+    "@types/react": "^18.2.20",
+    "@types/react-dom": "^18.2.7",
     "autoprefixer": "^10.4.19",
     "drizzle-kit": "^0.24.2",
     "postcss": "^8.4.38",
@@ -66,9 +69,5 @@
     "typescript": "^5.1.6",
     "vite": "^5.1.0",
     "vite-tsconfig-paths": "^4.2.1"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  }
 }

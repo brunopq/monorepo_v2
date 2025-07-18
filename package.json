@@ -4,12 +4,12 @@
   "scripts": {
     "dev": "bun --bun run --filter '*' dev",
     "dev:auauth": "bun --bun run --filter auauth dev",
-    "dev:vendas": "bun --bun run --filter vendas dev",
+    "dev:vendas": "bun run --filter vendas dev",
     "dev:prevenda": "bun --bun run --filter prevenda dev",
     "lint": "biome lint",
     "format": "biome format --write"
   },
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": ["apps/vendas", "apps/auauth", "packages/*"],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4"
   }

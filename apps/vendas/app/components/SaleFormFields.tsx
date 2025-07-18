@@ -162,10 +162,12 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
             name="captationType"
             className="flex flex-1 gap-4"
           >
+            {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
             <label className="flex items-center gap-2">
               <RadioGroup.Item value="ATIVO" />
               Ativa
             </label>
+            {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
             <label className="flex items-center gap-2">
               <RadioGroup.Item value="PASSIVO" />
               Passiva
@@ -179,6 +181,7 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
         name="isRepurchase"
         label="É recompra"
       >
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
         <label className="flex flex-1 items-center gap-2">
           Sim
           <Checkbox

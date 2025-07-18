@@ -7,6 +7,7 @@ import {
   boolean,
   numeric,
   integer,
+  uuid,
 } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
@@ -25,11 +26,12 @@ export const userRoles = pgEnum("user_roles", ["ADMIN", "SELLER"])
 
 export const user = pgTable("users", {
   id: char("id", { length: idLength }).$defaultFn(nanoid).primaryKey(),
+  auauthId: uuid("auauth_id").notNull().unique(),
   name: text("name").notNull().unique(),
   fullName: text("full_name"),
-  role: userRoles("user_role").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  accountActive: boolean("account_active").default(true).notNull(),
+  // role: userRoles("user_role").notNull(),
+  // passwordHash: text("password_hash").notNull(),
+  // accountActive: boolean("account_active").default(true).notNull(),
 })
 
 export const userRelations = relations(user, ({ many }) => ({

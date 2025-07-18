@@ -1,5 +1,5 @@
 import dotenv from "dotenv"
-import { cleanEnv, host, port, str } from "envalid"
+import { cleanEnv, host, port, str, url } from "envalid"
 
 dotenv.config()
 
@@ -13,4 +13,5 @@ export const env = cleanEnv(process.env, {
   DB_NAME: str(),
   DB_PORT: port(),
   COOKIE_SECRET: str(),
+  AUTH_SERVICE_URL: url()
 })

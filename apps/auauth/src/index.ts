@@ -39,7 +39,7 @@ app.post("/login", zValidator("json", loginSchema), async (c) => {
 
   const jwt = await makeJwt(userInfo)
 
-  return c.json({ token: jwt })
+  return c.json({ token: jwt, user: userInfo })
 })
 
 const userRouter = new Hono().use(jwtMiddleware(), getUser())

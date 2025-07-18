@@ -8,6 +8,7 @@ const cookieSecret = env.COOKIE_SECRET
 
 export type SessionData = {
   user: DomainUser
+  jwt: string
 }
 
 export const {

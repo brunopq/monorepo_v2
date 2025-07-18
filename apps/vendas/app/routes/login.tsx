@@ -38,8 +38,10 @@ export async function action({ request }: Route.ActionArgs) {
     const userInfo = formValidator.parse(rawForm)
 
     const login = await AuthService.login(userInfo)
+    console.log("login", login)
 
-    session.set("user", login)
+    session.set("user", login.user)
+    session.set("jwt", login.token)
 
     return redirect("/app", {
       headers: {
@@ -47,6 +49,7 @@ export async function action({ request }: Route.ActionArgs) {
       },
     })
   } catch (e) {
+    console.log(e)
     return { error: true }
   }
 }
