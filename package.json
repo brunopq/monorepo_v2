@@ -9,7 +9,7 @@
     "lint": "biome lint",
     "format": "biome format --write"
   },
-  "workspaces": ["apps/vendas", "apps/auauth", "packages/*"],
+  "workspaces": ["apps/vendas", "apps/auauth", "apps/prospects", "packages/*"],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4"
   }

@@ -1,0 +1,39 @@
+import { createCookieSessionStorage } from "react-router"
+
+import { env } from "./utils/env"
+
+import type { DomainUser } from "~/services/UserService"
+
+const cookieSecret = env.COOKIE_SECRET
+
+export type SessionData = {
+    user: DomainUser
+    jwt: string
+}
+
+export const {
+    commitSession,
+    destroySession,
+    getSession: _getSession,
+} = createCookieSessionStorage<SessionData>({
+    cookie: {
+        name: "_session",
+        sameSite: "lax",
+        path: "/",
+        httpOnly: false,
+        secrets: [cookieSecret],
+        secure: env.NODE_ENV === "production",
+    },
+})
+
+export async function getSession(request: Request) {
+    return await _getSession(request.headers.get("Cookie"))
+}
+
+export async function getUser(request: Request): Promise<DomainUser | null> {
+    const session = await getSession(request)
+
+    const user = session.get("user")
+
+    return user ?? null
+}
