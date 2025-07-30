@@ -1,41 +1,6 @@
 @import "tailwindcss";
-
+@import "iboti-ui/config";
 
 @theme {
-  --default-transition-duration: 150ms;
-  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  --default-font-feature-settings: normal;
-  --default-font-variation-settings: normal;
-  --default-mono-font-feature-settings: normal;
-  --default-mono-font-variation-settings: normal;
-  
-  --color-primary-50: #edf0fe;
-  --color-primary-100: #cdd1e7;
-  --color-primary-200: #adb2d2;
-  --color-primary-300: #8c93bf;
-  --color-primary-400: #6c74ac;
-  --color-primary-500: #525b92;
-  --color-primary-600: #404772;
-  --color-primary-700: #2d3252;
-  --color-primary-800: #1a1e33;
-  --color-primary-900: #070a16;
-  
-  --color-accent-50: #FFF1F3;
-  --color-accent-100: #FFE4E7;
-  --color-accent-200: #FFCCD4;
-  --color-accent-300: #FFA2B2;
-  --color-accent-400: #FD6F89;
-  --color-accent-500: #F73760;
-  --color-accent-600: #E41A4F;
-  --color-accent-700: #C10F42;
-  --color-accent-800: #A1103E;
-  --color-accent-900: #8A113B;
-  --color-accent-950: #4D041B;
-  
   --font-family-sans: Sora, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
 }
-
