@@ -1,7 +1,8 @@
 import { db } from '../db'
-import type { users } from '../db/schema'
+import { users } from '../db/schema'
 
 export type DbUser = (typeof users.$inferSelect)
+export type DbInsertUser = (typeof users.$inferInsert)
 
 export type UserRoles = 'ADMIN' | 'SELLER'
 
@@ -25,6 +26,31 @@ class UserService {
         }
 
         return user
+    }
+
+    async findByName(name: string): Promise<DbUser | null> {
+        const user = await db.query.users.findFirst({
+            where: (users, { eq }) => eq(users.name, name),
+        })
+
+        if (!user) {
+            return null
+        }
+
+        return user
+    }
+
+    /**
+     * Creates a new user in the database.
+     * 
+     * Different from `create` (not yet implemented), which also creates the user in the Auauth service.
+     */
+    async createLocal(user: DbInsertUser): Promise<DbUser> {
+        const [createdUser] = await db.insert(users)
+            .values(user)
+            .returning()
+
+        return createdUser
     }
 }
 

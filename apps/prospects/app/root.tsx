@@ -8,9 +8,10 @@ import {
   type LinksFunction,
 } from "react-router";
 
-import type { Route } from "./+types/root";
-import "./app.css";
+import type { Route } from "./+types/root"
+
 import "iboti-ui/styles" // Adds the pre built tailwind styles for the ui package
+import "./app.css"
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
