@@ -1,5 +1,5 @@
 import type { Route } from "./+types/login"
-import { redirect, useNavigation } from "react-router"
+import { Form, redirect } from "react-router"
 import z from "zod/v4"
 
 import { Button, Input } from "iboti-ui"
@@ -59,7 +59,7 @@ export default function Login({ actionData }: Route.ComponentProps) {
             Login
           </h1>
         </header>
-        <form method="POST" className="flex flex-col gap-2">
+        <Form method="POST" className="flex flex-col gap-2">
           <Input name="name" type="text" placeholder="Usuário" />
           <Input name="password" type="password" placeholder="Senha" />
 
@@ -68,7 +68,7 @@ export default function Login({ actionData }: Route.ComponentProps) {
           )}
 
           <Button className="mt-3">Entrar</Button>
-        </form>
+        </Form>
       </div>
     </div>
   )

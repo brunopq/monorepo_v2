@@ -20,7 +20,7 @@ export const users = pgTable('users', {
 
 export const lists = pgTable('lists', {
     ...baseTable,
-    createdBy: text().references(() => users.id).notNull(),
+    creatorId: text().references(() => users.id).notNull(),
     createdAt: timestamp({ mode: 'date', withTimezone: true }).notNull().defaultNow(),
     name: text().notNull(),
     origin: text().notNull(),
