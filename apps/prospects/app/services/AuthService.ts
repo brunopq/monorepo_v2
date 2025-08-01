@@ -9,7 +9,6 @@ export type LoginUser = {
 
 class AuthService {
     async validateJWT(jwt: string): Promise<DomainUser | null> {
-        console.log('validating jwt', jwt)
         const res = await fetch(`${env.AUTH_SERVICE_URL}/users/me`, {
             headers: {
                 Authorization: `Bearer ${jwt}`,

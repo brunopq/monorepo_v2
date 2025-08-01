@@ -1,10 +1,12 @@
 import type { Route } from "./+types/new"
-import { Form } from "react-router"
+import { Form, Link, useFetcher } from "react-router"
 import { useRef, useState } from "react"
-import { FileUpIcon, FileIcon, XIcon } from "lucide-react"
+import { FileUpIcon, FileIcon, XIcon, ArrowLeftIcon } from "lucide-react"
 import { Button, Input } from "iboti-ui"
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
+
+import type { DomainLead } from "~/services/LeadService"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
@@ -12,6 +14,30 @@ import { cn, maxWidth } from "~/utils/styling"
 export async function loader({ request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
   return null
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData()
+  const files = [...formData.keys()]
+    .filter((key) => key.startsWith("files["))
+    .map((key) => formData.get(key))
+    .filter((file): file is File => file instanceof File)
+
+  if (!files.length) {
+    return { error: "Nenhum arquivo enviado." }
+  }
+
+  const file = files[0] // lets start with one file
+
+  if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+    return { error: "Apenas arquivos CSV são permitidos." }
+  }
+
+  const res = Papa.parse(await file.text(), {
+    header: true,
+  })
+  const header = res.meta.fields
+  console.log(header)
 }
 
 function countLeadsInCSV(file: File): Promise<number> {
@@ -87,155 +113,125 @@ async function countLeadsInFile(file: File): Promise<number> {
     case ".xlsx":
       return countLeadsInExcel(file)
     default:
-      return 0
+      throw new Error("Tipo de arquivo não suportado")
+  }
+}
+
+async function getCSVHeaders(file: File): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        if (results.meta.fields) {
+          resolve(results.meta.fields)
+        } else {
+          reject(new Error("Não foi possível obter os cabeçalhos do CSV"))
+        }
+      },
+      error: (error) => {
+        console.error("Erro ao ler CSV:", error)
+        reject(error)
+      },
+    })
+  })
+}
+
+async function getExcelHeaders(file: File): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const workbook = XLSX.read(data, { type: "array" })
+
+        // Get the first worksheet
+        const firstSheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[firstSheetName]
+
+        // Get headers from the first row
+        const headers = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          range: 0,
+        })[0] as string[]
+
+        if (headers) {
+          resolve(headers)
+        } else {
+          reject(new Error("Não foi possível obter os cabeçalhos do Excel"))
+        }
+      } catch (error) {
+        console.error("Erro ao ler Excel:", error)
+        reject(error)
+      }
+    }
+
+    reader.onerror = () => {
+      reject(new Error("Falha ao ler o arquivo Excel"))
+    }
+
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+async function getFileHeaders(file: File): Promise<string[]> {
+  const fileExtension = file.name
+    .toLowerCase()
+    .substring(file.name.lastIndexOf("."))
+
+  switch (fileExtension) {
+    case ".csv":
+      return getCSVHeaders(file)
+    case ".xls":
+    case ".xlsx":
+      return getExcelHeaders(file)
+    default:
+      throw new Error("Tipo de arquivo não suportado")
   }
 }
 
 export default function NewList() {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const fetcher = useFetcher()
+
   const [listName, setListName] = useState("")
-  const [fileError, setFileError] = useState<string | null>(null)
-  const [fileCounts, setFileCounts] = useState<Record<string, number>>({})
-  const [isCountingLeads, setIsCountingLeads] = useState<
-    Record<string, boolean>
-  >({})
-
-  const generateFileKey = (file: File) =>
-    `${file.name}-${file.size}-${file.lastModified}`
-
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = Array.from(event.target.files || [])
-    if (files.length === 0) return
-
-    const validFiles: File[] = []
-    const errors: string[] = []
-
-    for (const file of files) {
-      // Check for duplicates
-      const fileKey = generateFileKey(file)
-      const isDuplicate = selectedFiles.some(
-        (existingFile) => generateFileKey(existingFile) === fileKey,
-      )
-
-      if (isDuplicate) {
-        errors.push(`${file.name}: Arquivo já foi adicionado`)
-        continue
-      }
-
-      // Validate file type
-      const allowedTypes = [
-        "text/csv",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ]
-      const allowedExtensions = [".csv", ".xls", ".xlsx"]
-
-      const fileExtension = file.name
-        .toLowerCase()
-        .substring(file.name.lastIndexOf("."))
-      const isValidType =
-        allowedTypes.includes(file.type) ||
-        allowedExtensions.includes(fileExtension)
-
-      if (!isValidType) {
-        errors.push(
-          `${file.name}: Apenas arquivos CSV, XLS ou XLSX são permitidos`,
-        )
-        continue
-      }
-
-      const maxSize = 10 * 1024 * 1024
-      if (file.size > maxSize) {
-        errors.push(`${file.name}: O arquivo deve ter no máximo 10MB`)
-        continue
-      }
-
-      validFiles.push(file)
-    }
-
-    // Set error message if there are any errors
-    if (errors.length > 0) {
-      setFileError(errors.join("; "))
-    } else {
-      setFileError(null)
-    }
-
-    // Add valid files even if some were invalid
-    if (validFiles.length > 0) {
-      setSelectedFiles((prev) => [...prev, ...validFiles])
-
-      // Count leads for each new valid file
-      for (const file of validFiles) {
-        const fileKey = generateFileKey(file)
-        setIsCountingLeads((prev) => ({ ...prev, [fileKey]: true }))
-
-        try {
-          const count = await countLeadsInFile(file)
-          setFileCounts((prev) => ({ ...prev, [fileKey]: count }))
-        } catch (error) {
-          console.error("Error counting leads:", error)
-          setFileCounts((prev) => ({ ...prev, [fileKey]: 0 }))
-        } finally {
-          setIsCountingLeads((prev) => ({ ...prev, [fileKey]: false }))
-        }
-      }
-
-      // If no name is set and we have files, use the first filename without extension
-      if (!listName.trim()) {
-        const nameWithoutExtension = validFiles[0].name.replace(/\.[^/.]+$/, "")
-        setListName(nameWithoutExtension)
-      }
-    }
-
-    // Reset file input to allow selecting the same files again
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setListName(event.target.value)
   }
 
-  const removeFile = (fileToRemove: File) => {
-    const fileKey = generateFileKey(fileToRemove)
-    setSelectedFiles((prev) =>
-      prev.filter((file) => generateFileKey(file) !== fileKey),
-    )
-    setFileCounts((prev) => {
-      const newCounts = { ...prev }
-      delete newCounts[fileKey]
-      return newCounts
-    })
-    setIsCountingLeads((prev) => {
-      const newCounting = { ...prev }
-      delete newCounting[fileKey]
-      return newCounting
-    })
-  }
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
-  const removeAllFiles = () => {
-    setSelectedFiles([])
-    setFileError(null)
-    setFileCounts({})
-    setIsCountingLeads({})
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }
+    const formData = new FormData(event.currentTarget)
+    formData.append("listName", listName)
 
-  const totalLeads = Object.values(fileCounts).reduce(
-    (sum, count) => sum + count,
-    0,
-  )
-  const hasCountingFiles = Object.values(isCountingLeads).some(Boolean)
+    fetcher.submit(formData, { method: "post", encType: "multipart/form-data" })
+  }
 
   return (
     <div className={maxWidth("pt-4")}>
-      <h1 className="mb-4 font-semibold text-2xl text-primary-700">
-        Nova lista
-      </h1>
+      <fetcher.Form
+        method="post"
+        className="space-y-4"
+        encType="multipart/form-data"
+        onSubmit={handleSubmit}
+      >
+        <header className="mb-4 flex items-center gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link to="..">
+              <ArrowLeftIcon />
+            </Link>
+          </Button>
 
-      <Form method="post" className="space-y-4">
+          <h1 className="font-semibold text-2xl text-primary-700">
+            Nova lista
+          </h1>
+
+          <Button className="ml-auto" type="submit">
+            Criar Lista
+          </Button>
+        </header>
+
         <div className="flex gap-2">
           <label
             htmlFor="name"
@@ -260,122 +256,263 @@ export default function NewList() {
           </label>
         </div>
 
-        <div className="space-y-2">
-          <label className="block font-medium text-sm text-zinc-600">
-            Arquivo de Leads (CSV/XLSX)
-          </label>
+        <FilesInput listName={listName} setListName={setListName} />
+      </fetcher.Form>
+    </div>
+  )
+}
 
-          <div className="relative">
-            <input
-              type="file"
-              id="leadsFile"
-              name="leadsFile"
-              accept=".csv,.xlsx,.xls"
-              multiple
-              required={selectedFiles.length === 0}
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              className={cn(
-                "absolute z-10 size-0 opacity-0",
-                selectedFiles.length === 0 &&
-                  "inset-0 h-full w-full cursor-pointer",
-              )}
-            />
-            {selectedFiles.length === 0 ? (
-              <div
-                className={cn(
-                  "rounded-lg border-2 border-dashed bg-zinc-100 p-8 text-center transition-colors",
-                  fileError
-                    ? "border-red-300 bg-red-50"
-                    : "border-zinc-300 hover:border-zinc-400",
-                )}
-              >
-                <div className="space-y-2">
-                  <FileUpIcon
-                    className="mx-auto mb-4 size-16 text-primary-500"
-                    strokeWidth="1.25"
-                  />
-                  <div className="text-zinc-600">
-                    Clique ou arraste os arquivos aqui
-                  </div>
-                  <p className="text-sm text-zinc-500">
-                    CSV ou XLSX, até 10MB cada
-                  </p>
+// 100% not AI slop I swear
+// more like 90%
+type FilesInputProps = {
+  listName: string
+  setListName: (name: string) => void
+}
+
+type ProcessedFile = {
+  file: File
+  leadsCount: number
+  headers: string[]
+}
+
+function FilesInput({ listName, setListName }: FilesInputProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [files, setFiles] = useState<ProcessedFile[]>([])
+  const [fileErrors, setFileErrors] = useState<string[]>([])
+
+  const generateFileKey = (file: File) => `${file.name}-${file.lastModified}`
+
+  const isValidType = (file: File) => {
+    const allowedTypes = [
+      "text/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ]
+    const allowedExtensions = [".csv", ".xls", ".xlsx"]
+
+    const fileExtension = file.name
+      .toLowerCase()
+      .substring(file.name.lastIndexOf("."))
+
+    return (
+      allowedTypes.includes(file.type) ||
+      allowedExtensions.includes(fileExtension)
+    )
+  }
+
+  // if this throws, the file is not valid
+  const validateFile = (file: File) => {
+    if (!isValidType(file)) {
+      throw new Error("Apenas arquivos CSV, XLS ou XLSX são permitidos")
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error("O arquivo deve ter no máximo 10MB")
+    }
+
+    const fileKey = generateFileKey(file)
+    const isDuplicate = files.some((f) => generateFileKey(f.file) === fileKey)
+
+    if (isDuplicate) {
+      throw new Error("Arquivo já foi adicionado")
+    }
+  }
+
+  const processFile = async (
+    file: File,
+  ): Promise<
+    { ok: true; file: ProcessedFile } | { ok: false; error: string }
+  > => {
+    try {
+      validateFile(file)
+
+      const leadsCount = await countLeadsInFile(file)
+      const headers = await getFileHeaders(file)
+
+      return {
+        ok: true,
+        file: { file: file, leadsCount: leadsCount, headers },
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro ao processar arquivo"
+      return {
+        ok: false,
+        error: `${file.name}: ${message}`,
+      }
+    }
+  }
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    if (!event.target.files) return
+
+    const validFiles: ProcessedFile[] = []
+    const errors: string[] = []
+
+    for (const file of event.target.files) {
+      const processed = await processFile(file)
+
+      if (processed.ok) {
+        validFiles.push(processed.file)
+      } else {
+        errors.push(processed.error)
+      }
+    }
+
+    setFiles((prev) => [...prev, ...validFiles])
+    setFileErrors(errors)
+
+    if (!listName.trim() && validFiles.length > 0) {
+      const nameWithoutExtension = validFiles[0].file.name.replace(
+        /\.[^/.]+$/,
+        "",
+      )
+      setListName(nameWithoutExtension)
+    }
+  }
+
+  // Remove file by its key
+  const removeFile = (fileKey: string) => {
+    setFiles((prev) =>
+      prev.filter((file) => generateFileKey(file.file) !== fileKey),
+    )
+  }
+
+  const removeAllFiles = () => {
+    setFiles([])
+    setFileErrors([])
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  const totalLeads = files.reduce((sum, { leadsCount }) => sum + leadsCount, 0)
+
+  return (
+    <div className="space-y-2">
+      <label className="block font-medium text-sm text-zinc-600">
+        Arquivo de Leads (CSV/XLSX)
+      </label>
+
+      <div className="relative">
+        <input
+          type="file"
+          id="leadsFile"
+          name="leadsFile"
+          accept=".csv,.xlsx,.xls"
+          multiple
+          required={files.length === 0}
+          onChange={handleFileChange}
+          ref={fileInputRef}
+          className={cn(
+            "absolute z-10 size-0 opacity-0",
+            files.length === 0 && "inset-0 h-full w-full cursor-pointer",
+          )}
+        />
+        {files.length === 0 ? (
+          <FileInputPlaceholder hasErrors={fileErrors.length > 0} />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {files.map((file) => (
+              <ProcessedFileCard
+                key={generateFileKey(file.file)}
+                file={file}
+                onRemoveFile={() => removeFile(generateFileKey(file.file))}
+              />
+            ))}
+
+            <hr className="mt-2 mb-1 border-primary-400 border-dashed" />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="font-medium text-primary-800 text-sm">
+                  Total: {totalLeads.toLocaleString()} leads
+                </div>
+                <div className="text-primary-600 text-sm">
+                  ({files.length} arquivo
+                  {files.length !== 1 ? "s" : ""})
                 </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {selectedFiles.map((file) => {
-                  const fileKey = generateFileKey(file)
-                  const isCountingFile = isCountingLeads[fileKey]
-                  const fileCount = fileCounts[fileKey] || 0
-
-                  return (
-                    <div
-                      key={fileKey}
-                      className="flex items-center gap-3 rounded border border-zinc-300 bg-zinc-100 p-2 px-4 shadow"
-                    >
-                      <FileIcon className="size-6 text-primary-500" />
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-zinc-900">
-                          {file.name}
-                        </div>
-                        <div className="text-sm text-zinc-500">
-                          {isCountingFile
-                            ? "Contando leads..."
-                            : `${fileCount.toLocaleString()} leads`}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(file)}
-                        className="rounded-sm p-1 text-zinc-400 transition-colors hover:bg-red-200 hover:text-red-800"
-                      >
-                        <XIcon className="size-4" />
-                      </button>
-                    </div>
-                  )
-                })}
-
-                <div className="flex items-center justify-between rounded border border-primary-200 bg-primary-50 p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="font-medium text-primary-800 text-sm">
-                      Total:{" "}
-                      {hasCountingFiles
-                        ? "Contando..."
-                        : `${totalLeads.toLocaleString()} leads`}
-                    </div>
-                    <div className="text-primary-600 text-sm">
-                      ({selectedFiles.length} arquivo
-                      {selectedFiles.length !== 1 ? "s" : ""})
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-primary-700 text-sm hover:text-primary-800"
-                    >
-                      + Adicionar mais
-                    </button>
-                    <button
-                      type="button"
-                      onClick={removeAllFiles}
-                      className="text-red-600 text-sm hover:text-red-700"
-                    >
-                      Remover todos
-                    </button>
-                  </div>
-                </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="cursor-pointer text-primary-700 text-sm transition-colors hover:text-primary-700/80"
+                >
+                  + Adicionar mais
+                </button>
+                <button
+                  type="button"
+                  onClick={removeAllFiles}
+                  className="cursor-pointer text-red-600 text-sm transition-colors hover:text-red-600/80"
+                >
+                  Remover todos
+                </button>
               </div>
-            )}
+            </div>
           </div>
+        )}
+      </div>
 
-          {fileError && <p className="text-red-600 text-sm">{fileError}</p>}
+      {fileErrors.map((e) => (
+        <p key={e} className="text-red-600 text-sm">
+          {e}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+type FileInputPlaceholderProps = {
+  hasErrors?: boolean
+}
+
+function FileInputPlaceholder({ hasErrors }: FileInputPlaceholderProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border-2 border-dashed bg-zinc-100 p-8 text-center transition-colors",
+        hasErrors
+          ? "border-red-300 bg-red-50"
+          : "border-zinc-300 hover:border-zinc-400",
+      )}
+    >
+      <div className="space-y-2">
+        <FileUpIcon
+          className="mx-auto mb-4 size-16 text-primary-500"
+          strokeWidth="1.25"
+        />
+        <div className="text-zinc-600">Clique ou arraste os arquivos aqui</div>
+        <p className="text-sm text-zinc-500">CSV ou XLSX, até 10MB cada</p>
+      </div>
+    </div>
+  )
+}
+
+type ProcessedFileCardProps = {
+  file: ProcessedFile
+  onRemoveFile: () => void
+}
+
+function ProcessedFileCard({ file, onRemoveFile }: ProcessedFileCardProps) {
+  return (
+    <div className="flex items-center gap-3 rounded border border-zinc-300 bg-zinc-100 p-2 px-4 shadow">
+      <FileIcon className="size-6 text-primary-500" />
+      <div className="flex-1">
+        <div className="font-medium text-sm text-zinc-900">
+          {file.file.name}
         </div>
+        <div className="text-sm text-zinc-500">{file.leadsCount} leads</div>
 
-        <Button type="submit">Criar Lista</Button>
-      </Form>
+        <div className="text-xs text-zinc-400">{file.headers.join(", ")}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onRemoveFile}
+        className="rounded-sm p-1 text-zinc-400 transition-colors hover:bg-red-200 hover:text-red-800"
+      >
+        <XIcon className="size-4" />
+      </button>
     </div>
   )
 }

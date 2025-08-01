@@ -58,7 +58,6 @@ export async function assertUser(
     session: Session<SessionData>,
     redirectPath = "/",
 ) /*: Promise<DomainUser> */ {
-    console.log(session.data)
     const user = session.data.user
     const jwt = session.data.jwt
     if (!jwt || !user) {
