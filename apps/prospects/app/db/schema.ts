@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import { char, date, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { customAlphabet } from 'nanoid'
 
@@ -76,3 +77,10 @@ export const leadInteractions = pgTable('lead_interactions', {
     status: interactionStatuses().notNull(),
     notes: text(),
 })
+
+export const listRelations = relations(lists, ({ one }) => ({
+    createdBy: one(users, {
+        fields: [lists.creatorId],
+        references: [users.id],
+    }),
+}))

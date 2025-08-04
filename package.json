@@ -8,6 +8,7 @@
     "dev:prevenda": "bun --bun run --filter prevenda dev",
     "db:up": "docker compose -f infrastructure/compose.yml up",
     "db:down": "docker compose -f infrastructure/compose.yml down",
+    "db:hack": "docker compose -f infrastructure/compose.yml exec -it db bash",
     "lint": "biome lint",
     "format": "biome format --write"
   },

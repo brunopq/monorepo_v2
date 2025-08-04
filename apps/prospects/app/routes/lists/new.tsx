@@ -2,42 +2,68 @@ import type { Route } from "./+types/new"
 import { Form, Link, useFetcher } from "react-router"
 import { useRef, useState } from "react"
 import { FileUpIcon, FileIcon, XIcon, ArrowLeftIcon } from "lucide-react"
-import { Button, Input } from "iboti-ui"
+import { Button, Dialog, Input, Select } from "iboti-ui"
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
+import { z } from "zod/v4"
 
-import type { DomainLead } from "~/services/LeadService"
+import ListService from "~/services/ListService"
+import type { DomainLead, NewDomainLead } from "~/services/LeadService"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
+import LeadService from "~/services/LeadService"
 
 export async function loader({ request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
   return null
 }
 
+const newListSchema = z.object({
+  name: z.string().nonempty("Nome é obrigatório"),
+  origin: z.string().nonempty("Origem é obrigatória"),
+  leads: z.array(
+    z.object({
+      name: z.string().nonempty("Nome é obrigatório"),
+      phoneNumber: z.string().nonempty("Telefone é obrigatório"),
+      cpf: z.string().nullable(),
+      birthDate: z.iso.date().nullable(),
+      state: z.string().nullable(),
+      extra: z.record(z.string(), z.string()).nullable(),
+    }),
+  ),
+})
+
 export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData()
-  const files = [...formData.keys()]
-    .filter((key) => key.startsWith("files["))
-    .map((key) => formData.get(key))
-    .filter((file): file is File => file instanceof File)
-
-  if (!files.length) {
-    return { error: "Nenhum arquivo enviado." }
+  const user = await getUserOrRedirect(request)
+  if (request.headers.get("content-type") !== "application/json") {
+    throw new Response("Only application/json is supported", { status: 415 })
   }
 
-  const file = files[0] // lets start with one file
+  const body = await request.json()
+  const { success, data, error } = newListSchema.safeParse(body)
 
-  if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
-    return { error: "Apenas arquivos CSV são permitidos." }
+  if (!success) {
+    return new Response(
+      JSON.stringify({
+        error: "Dados inválidos",
+        issues: error.issues,
+      }),
+      { status: 400 },
+    )
   }
 
-  const res = Papa.parse(await file.text(), {
-    header: true,
+  const list = await ListService.create({
+    createdBy: user,
+    name: data.name,
+    origin: data.origin,
+    size: data.leads.length,
   })
-  const header = res.meta.fields
-  console.log(header)
+
+  const leads = await LeadService.createMany(
+    data.leads.map((l) => ({ ...l, listId: list.id })),
+  )
+  
 }
 
 function countLeadsInCSV(file: File): Promise<number> {
@@ -190,22 +216,147 @@ async function getFileHeaders(file: File): Promise<string[]> {
   }
 }
 
+async function extractLeadsFromCSV(
+  file: File,
+  mapping: Partial<Record<string, string>>,
+): Promise<NewDomainLead[]> {
+  return new Promise((resolve, reject) => {
+    const leads: NewDomainLead[] = []
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        for (const row of results.data) {
+          const lead = {
+            // biome-ignore lint/complexity/useLiteralKeys: <explanation>
+            name: row[mapping["Nome"]],
+            // biome-ignore lint/complexity/useLiteralKeys: <explanation>
+            phoneNumber: row[mapping["Telefone"]],
+            // biome-ignore lint/complexity/useLiteralKeys: <explanation>
+            cpf: row[mapping["CPF"]],
+            birthDate: mapping["Data de nascimento"]
+              ? row[mapping["Data de nascimento"]]
+              : null,
+            // biome-ignore lint/complexity/useLiteralKeys: <explanation>
+            state: mapping["Estado"] ? row[mapping["Estado"]] : null,
+            extra: {},
+          } satisfies NewDomainLead
+
+          // Add any additional fields from mapping
+          for (const [key, value] of Object.entries(mapping)) {
+            if (
+              value &&
+              key !== "Nome" &&
+              key !== "Telefone" &&
+              key !== "CPF"
+            ) {
+              lead.extra[key] = row[value] || ""
+            }
+          }
+
+          leads.push(lead)
+        }
+
+        resolve(leads)
+      },
+      error: (error) => {
+        console.error("Erro ao processar CSV:", error)
+        reject(error)
+      },
+    })
+  })
+}
+
+async function extractLeadsFromExcel(
+  file: File,
+  mapping: Partial<Record<string, string>>,
+): Promise<NewDomainLead[]> {
+  throw new Error("Função não implementada: extractLeadsFromExcel")
+}
+
+async function extractLeadsFromFile(
+  file: File,
+  mapping: Partial<Record<string, string>>,
+): Promise<NewDomainLead[]> {
+  const fileExtension = file.name
+    .toLowerCase()
+    .substring(file.name.lastIndexOf("."))
+
+  switch (fileExtension) {
+    case ".csv":
+      return extractLeadsFromCSV(file, mapping)
+    case ".xls":
+    case ".xlsx":
+      return extractLeadsFromExcel(file, mapping)
+    default:
+      throw new Error("Tipo de arquivo não suportado")
+  }
+}
+
 export default function NewList() {
   const fetcher = useFetcher()
 
   const [listName, setListName] = useState("")
+  const [origin, setOrigin] = useState("")
+  const [files, setFiles] = useState<ProcessedFile[]>([])
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setListName(event.target.value)
   }
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const requiredFields = ["Nome", "Telefone", "CPF"]
 
-    const formData = new FormData(event.currentTarget)
-    formData.append("listName", listName)
+    const leads: NewDomainLead[] = []
 
-    fetcher.submit(formData, { method: "post", encType: "multipart/form-data" })
+    for (const file of files) {
+      console.log(file)
+      if (!requiredFields.every((field) => file.mapping[field])) {
+        alert(
+          `O arquivo "${file.file.name}" deve conter os campos obrigatórios: ${requiredFields.join(
+            ", ",
+          )}`,
+        )
+        return
+      }
+
+      for (const [key, value] of Object.entries(file.mapping)) {
+        if (!value) {
+          alert(
+            `O campo "${key}" não está mapeado no arquivo "${file.file.name}". Remova o campo ou mapeie-o corretamente.`,
+          )
+          return
+        }
+
+        if (!file.headers.includes(value)) {
+          alert(
+            `O campo "${key}" está mapeado para "${value}", que não existe no arquivo "${file.file.name}".`,
+          )
+          return
+        }
+      }
+
+      const fileLeads = await extractLeadsFromFile(file.file, file.mapping)
+      console.log(fileLeads)
+      leads.push(...fileLeads)
+    }
+
+    const payload = {
+      name: listName,
+      origin: origin,
+      leads: leads.map((l) => ({
+        ...l,
+        birthDate: l.birthDate?.toISOString() || null,
+      })),
+    }
+
+    console.log(payload)
+    fetcher.submit(payload, {
+      encType: "application/json",
+      method: "post",
+    })
   }
 
   return (
@@ -252,11 +403,23 @@ export default function NewList() {
             className="flex-1 font-medium text-sm text-zinc-600"
           >
             Origem
-            <Input type="text" id="origin" name="origin" required />
+            <Input
+              type="text"
+              id="origin"
+              name="origin"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              required
+            />
           </label>
         </div>
 
-        <FilesInput listName={listName} setListName={setListName} />
+        <FilesInput
+          files={files}
+          setFiles={setFiles}
+          listName={listName}
+          setListName={setListName}
+        />
       </fetcher.Form>
     </div>
   )
@@ -267,17 +430,26 @@ export default function NewList() {
 type FilesInputProps = {
   listName: string
   setListName: (name: string) => void
+  files: ProcessedFile[]
+  setFiles: (
+    files: ProcessedFile[] | ((prev: ProcessedFile[]) => ProcessedFile[]),
+  ) => void
 }
 
 type ProcessedFile = {
   file: File
   leadsCount: number
   headers: string[]
+  mapping: Partial<Record<string, string | null>>
 }
 
-function FilesInput({ listName, setListName }: FilesInputProps) {
+function FilesInput({
+  listName,
+  setListName,
+  files,
+  setFiles,
+}: FilesInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [files, setFiles] = useState<ProcessedFile[]>([])
   const [fileErrors, setFileErrors] = useState<string[]>([])
 
   const generateFileKey = (file: File) => `${file.name}-${file.lastModified}`
@@ -331,7 +503,18 @@ function FilesInput({ listName, setListName }: FilesInputProps) {
 
       return {
         ok: true,
-        file: { file: file, leadsCount: leadsCount, headers },
+        file: {
+          file: file,
+          leadsCount: leadsCount,
+          headers,
+          mapping: {
+            Nome: null,
+            Telefone: null,
+            CPF: null,
+            "Data de nascimento": null,
+            Estado: null,
+          },
+        },
       }
     } catch (error) {
       const message =
@@ -503,16 +686,184 @@ function ProcessedFileCard({ file, onRemoveFile }: ProcessedFileCardProps) {
           {file.file.name}
         </div>
         <div className="text-sm text-zinc-500">{file.leadsCount} leads</div>
-
-        <div className="text-xs text-zinc-400">{file.headers.join(", ")}</div>
       </div>
-      <button
-        type="button"
-        onClick={onRemoveFile}
-        className="rounded-sm p-1 text-zinc-400 transition-colors hover:bg-red-200 hover:text-red-800"
-      >
-        <XIcon className="size-4" />
-      </button>
+
+      <div className="flex flex-col items-end gap-0.5">
+        <FieldsMappingModal file={file} />
+        <Button
+          type="button"
+          onClick={onRemoveFile}
+          variant="outline"
+          size="sm"
+        >
+          Remover
+        </Button>
+      </div>
     </div>
+  )
+}
+
+type FieldsMappingModalProps = {
+  file: ProcessedFile
+}
+
+function FieldsMappingModal({ file }: FieldsMappingModalProps) {
+  const [localMapping, setLocalMapping] = useState<
+    Partial<Record<string, string | null>>
+  >(file.mapping)
+  const [newMappingKey, setNewMappingKey] = useState("")
+  const [newMappingValue, setNewMappingValue] = useState("")
+
+  const addMapping = () => {
+    if (newMappingKey.trim() && newMappingValue) {
+      setLocalMapping((prev) => ({
+        ...prev,
+        [newMappingKey.trim()]: newMappingValue,
+      }))
+      setNewMappingKey("")
+      setNewMappingValue("")
+    }
+  }
+
+  const removeMapping = (key: string) => {
+    setLocalMapping((prev) => {
+      const newMapping = { ...prev }
+      delete newMapping[key]
+      return newMapping
+    })
+  }
+
+  const saveMappings = () => {
+    file.mapping = localMapping
+  }
+
+  return (
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <Button size="sm" variant="outline">
+          Ver colunas
+        </Button>
+      </Dialog.Trigger>
+
+      <Dialog.Content className="[--dialog-content-max-width:_38rem]">
+        <Dialog.Title>Colunas do arquivo {file.file.name}</Dialog.Title>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="mb-2 font-medium text-sm text-zinc-700">
+              Colunas disponíveis:
+            </h3>
+            <div className="line-clamp-3 flex flex-wrap gap-x-4 gap-y-1">
+              {file.headers.map((header, index) => (
+                <span key={header} className="text-xs text-zinc-600 underline">
+                  {header}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="mb-2 font-medium text-sm text-zinc-700">
+              Mapeamentos:
+            </h3>
+
+            {Object.entries(localMapping).length > 0 ? (
+              <div className="mb-3 space-y-2">
+                {Object.entries(localMapping).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex items-center gap-2 border-zinc-400 border-b"
+                  >
+                    <span className="font-medium text-sm">{key}:</span>
+                    <Select.Root
+                      value={value || ""}
+                      onValueChange={(val) =>
+                        setLocalMapping((prev) => ({
+                          ...prev,
+                          [key]: val || null,
+                        }))
+                      }
+                    >
+                      <Select.Trigger className="w-fit">
+                        <Select.Value placeholder="Selecione uma coluna..." />
+                      </Select.Trigger>
+
+                      <Select.Content>
+                        {file.headers.map((header) => (
+                          <Select.Item key={header} value={header}>
+                            {header}
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Root>
+
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      onClick={() => removeMapping(key)}
+                      className="ml-auto size-6 bg-transparent text-red-600 shadow-none hover:text-red-900"
+                    >
+                      <XIcon className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mb-3 text-sm text-zinc-500">
+                Nenhum mapeamento criado
+              </p>
+            )}
+
+            <div className="mt-6">
+              <h4 className="mb-2 font-medium text-sm text-zinc-700">
+                Adicionar novo mapeamento:
+              </h4>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nome do campo"
+                  value={newMappingKey}
+                  onChange={(e) => setNewMappingKey(e.target.value)}
+                  className="flex-1"
+                />
+                <Select.Root
+                  value={newMappingValue}
+                  onValueChange={setNewMappingValue}
+                >
+                  <Select.Trigger className="w-fit">
+                    <Select.Value placeholder="Selecione uma coluna..." />
+                  </Select.Trigger>
+
+                  <Select.Content>
+                    {file.headers.map((header) => (
+                      <Select.Item key={header} value={header}>
+                        {header}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Root>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addMapping}
+                  disabled={!newMappingKey.trim() || !newMappingValue}
+                >
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Dialog.Close asChild>
+            <Button variant="outline">Cancelar</Button>
+          </Dialog.Close>
+          <Dialog.Close asChild>
+            <Button onClick={saveMappings}>Salvar</Button>
+          </Dialog.Close>
+        </div>
+      </Dialog.Content>
+    </Dialog.Root>
   )
 }
