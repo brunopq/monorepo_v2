@@ -78,9 +78,35 @@ export const leadInteractions = pgTable('lead_interactions', {
     notes: text(),
 })
 
-export const listRelations = relations(lists, ({ one }) => ({
+export const listRelations = relations(lists, ({ one, many }) => ({
     createdBy: one(users, {
         fields: [lists.creatorId],
         references: [users.id],
     }),
+    leads: many(leads),
+    subLists: many(subLists),
+}))
+
+export const leadRelations = relations(leads, ({ one, many }) => ({
+    list: one(lists, {
+        fields: [leads.listId],
+        references: [lists.id],
+    }),
+    subList: one(subLists, {
+        fields: [leads.subListId],
+        references: [subLists.id],
+    }),
+    interactions: many(leadInteractions),
+}))
+
+export const subListRelations = relations(subLists, ({ one, many }) => ({
+    parentList: one(lists, {
+        fields: [subLists.parentListId],
+        references: [lists.id],
+    }),
+    assignee: one(users, {
+        fields: [subLists.assigneeId],
+        references: [users.id],
+    }),
+    leads: many(leads),
 }))

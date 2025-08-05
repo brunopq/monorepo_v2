@@ -33,6 +33,25 @@ class ListService {
             createdBy: list.createdBy,
         }
     }
+
+    async getById(id: string) {
+        const list = await db.query.lists.findFirst({
+            where: (lists, { eq }) => eq(lists.id, id),
+            with: {
+                createdBy: true,
+                leads: true,
+                subLists: {
+                    with: {
+                        assignee: true,
+                    }
+                }
+            },
+        })
+
+        if (!list) return null
+
+        return list
+    }
 }
 
 export default new ListService();
