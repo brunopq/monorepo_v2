@@ -41,10 +41,18 @@ export const leads = pgTable('leads', {
     extraInfo: jsonb(),
 })
 
+export const subListStates = pgEnum('sub_list_states', [
+    'new',
+    'in_progress',
+    'completed',
+    'canceled',
+])
+
 export const subLists = pgTable('sub_lists', {
     ...baseTable,
     parentListId: text().references(() => lists.id).notNull(),
-    assigneeId: text().references(() => users.id)
+    assigneeId: text().references(() => users.id),
+    state: subListStates().notNull(),
 })
 
 export const interactionTypes = pgEnum('interaction_types', [

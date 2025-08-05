@@ -1,34 +1,67 @@
 import type { Route } from "./+types/[id]"
-import { Link } from "react-router"
+import { Link, useLoaderData } from "react-router"
 import {
   ArrowLeftIcon,
   FileStackIcon,
   PencilLineIcon,
   Trash2Icon,
   PlusIcon,
-  MinusIcon,
 } from "lucide-react"
 import { Button, Dialog, Input } from "iboti-ui"
 import { useState } from "react"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
-import { cn, maxWidth } from "~/utils/styling"
+import { maxWidth } from "~/utils/styling"
 
-import ListService, { type DomainList } from "~/services/ListService"
+import ListService from "~/services/ListService"
+import { Form } from "react-router"
+import SubListService from "~/services/SubListService"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
   const listId = params.id
 
   const list = await ListService.getById(listId)
+  const subLists = await SubListService.getForList(listId)
 
   if (!list) throw new Response("List not found", { status: 404 })
 
-  return { list }
+  return { list, subLists }
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  await getUserOrRedirect(request)
+  const listId = params.id
+
+  const formData = await request.formData()
+  const subListsData = formData.get("subLists")
+
+  if (!subListsData) {
+    throw new Response("No sublists data provided", { status: 400 })
+  }
+
+  const subLists = subListsData
+    .toString()
+    .split(",")
+    .map((count) => Number.parseInt(count, 10))
+
+  if (subLists.some((count) => Number.isNaN(count)) || subLists.length === 0) {
+    throw new Response("Invalid sublist counts provided", { status: 400 })
+  }
+
+  console.log("Creating sublists with counts:", subLists)
+
+  await ListService.makeSubLists(
+    listId,
+    subLists.map((count) => ({
+      leadsCount: count,
+      assigneeId: undefined, // Assuming no specific assignee for simplicity
+    })),
+  )
 }
 
 export default function Id({ loaderData }: Route.ComponentProps) {
-  const { list } = loaderData
+  const { list, subLists } = loaderData
 
   return (
     <div className={maxWidth("pt-4")}>
@@ -58,12 +91,12 @@ export default function Id({ loaderData }: Route.ComponentProps) {
 
           <p className="text-sm">
             Leads:{" "}
-            <strong className="text-primary-600">{list.leads.length}</strong>
+            <strong className="text-primary-600">{list.leadsCount}</strong>
           </p>
 
           <p className="text-sm">
-            Listinhas:{" "}
-            <strong className="text-primary-600">{list.subLists.length}</strong>
+            Leads não atribuídos:{" "}
+            <strong className="text-primary-600">{list.freeLeadsCount}</strong>
           </p>
         </div>
 
@@ -93,61 +126,98 @@ export default function Id({ loaderData }: Route.ComponentProps) {
         </span>
       </header>
 
-      <main>
+      <main className="mt-6 space-y-8">
         <section>
-          <header className="mb-4 flex items-center justify-between">
-            <span>
-              <h2 className="font-medium text-lg text-primary-700">
-                Listinhas ({list.subLists.length})
-              </h2>
-              <p className="text-sm text-zinc-500">
-                Listinhas são partes de uma lista, que podem ser atribuídas a um
-                vendedor para captar os leads.
-              </p>
-            </span>
-
-            <span>
-              <SplitListDialog list={list} />
-            </span>
-          </header>
+          <SubListsSection subLists={subLists} />
         </section>
+
+        {/* <section>
+          <LeadsSection list={list} />
+        </section> */}
       </main>
     </div>
   )
 }
 
-type SplitListDialogProps = {
-  list: Awaited<ReturnType<typeof ListService.getById>>
+type SubListsSectionProps = {
+  subLists: Awaited<ReturnType<typeof SubListService.getForList>>
 }
+
+function SubListsSection({ subLists }: SubListsSectionProps) {
+  if (!subLists) return null
+
+  return (
+    <>
+      <header className="mb-4 flex items-center justify-between">
+        <span>
+          <h2 className="font-semibold text-lg text-primary-700">
+            Listinhas ({subLists.length})
+          </h2>
+          <p className="text-sm text-zinc-500">
+            Listinhas são partes de uma lista, que podem ser atribuídas a um
+            vendedor para captar os leads.
+          </p>
+        </span>
+
+        <span>
+          <SplitListDialog />
+        </span>
+      </header>
+
+      <div>
+        {subLists.map((subList) => (
+          <div
+            key={subList.id}
+            className="mb-4 border-primary-500 border-l-[3px] pl-3"
+          >
+            <h3 className="font-semibold text-lg text-primary-800">Listinha</h3>
+            <p className="text-sm text-zinc-600">Leads: {subList.leadsCount}</p>
+            <p className="text-sm text-zinc-600">{subList.state}</p>
+            {subList.assignee ? (
+              <p className="text-sm text-zinc-600">
+                Atribuída a: {subList.assignee.name}
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-600">Não atribuída</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+// biome-ignore lint/complexity/noBannedTypes: <explanation>
+type SplitListDialogProps = {}
 
 type Sublist = {
   id: string
   leadsCount: number
 }
 
-function SplitListDialog({ list }: SplitListDialogProps) {
-  if (!list) return null
+function SplitListDialog() {
+  const { list } = useLoaderData<typeof loader>()
 
-  const [sublistsCount, setSublistsCount] = useState<number>()
+  //   const [sublistsCount, setSublistsCount] = useState<number>()
   const [sublists, setSublists] = useState<Sublist[]>([])
 
-  const generateSublists = () => {
-    if (!sublistsCount || sublistsCount <= 0) {
-      setSublists([])
-      return
-    }
-    const leadsPerSublist = Math.floor(list.leads.length / sublistsCount)
-    const remainingLeads = list.leads.length % sublistsCount
-    const newSublists: Sublist[] = Array.from(
-      { length: sublistsCount },
-      (_, index) => ({
-        id: `sublist-${index + 1}`,
-        name: `Listinha ${index + 1}`,
-        leadsCount: leadsPerSublist + (index < remainingLeads ? 1 : 0),
-      }),
-    )
-    setSublists(newSublists)
-  }
+  //   const generateSublists = () => {
+  //     if (!sublistsCount || sublistsCount <= 0) {
+  //       setSublists([])
+  //       return
+  //     }
+  //     const leadsPerSublist = Math.floor(list.leads.length / sublistsCount)
+  //     const remainingLeads = list.leads.length % sublistsCount
+  //     const newSublists: Sublist[] = Array.from(
+  //       { length: sublistsCount },
+  //       (_, index) => ({
+  //         id: `sublist-${index + 1}`,
+  //         name: `Listinha ${index + 1}`,
+  //         leadsCount: leadsPerSublist + (index < remainingLeads ? 1 : 0),
+  //       }),
+  //     )
+  //     setSublists(newSublists)
+  //   }
 
   const updateSublistLeads = (id: string, leadsCount: number) => {
     setSublists((prev) =>
@@ -176,7 +246,7 @@ function SplitListDialog({ list }: SplitListDialogProps) {
     (sum, sublist) => sum + sublist.leadsCount,
     0,
   )
-  const remainingLeads = list.leads.length - totalDistributed
+  const remainingLeads = list.leadsCount - totalDistributed
 
   return (
     <Dialog.Root>
@@ -242,7 +312,7 @@ function SplitListDialog({ list }: SplitListDialogProps) {
 
           <p className="text-zinc-600 *:text-primary-500">
             <strong>{totalDistributed}</strong> de{" "}
-            <strong>{list.leads.length}</strong> leads distribuídos entre{" "}
+            <strong>{list.leadsCount}</strong> leads distribuídos entre{" "}
             <strong>{sublists.length}</strong>{" "}
             {sublists.length === 1 ? "listinha" : "listinhas"}.
           </p>
@@ -265,18 +335,75 @@ function SplitListDialog({ list }: SplitListDialogProps) {
             <Button variant="outline">Cancelar</Button>
           </Dialog.Close>
 
-          <Button
-            className="bg-primary-600 hover:bg-primary-700"
-            disabled={sublists.length <= 0 || remainingLeads < 0}
-            onClick={() => {
-              // TODO: Implement the actual split logic
-              console.log("Splitting list with distribution:", sublists)
-            }}
-          >
-            Confirmar divisão
-          </Button>
+          <Form method="POST">
+            <Button
+              className="bg-primary-600 hover:bg-primary-700"
+              disabled={sublists.length <= 0 || remainingLeads < 0}
+              onClick={() => {
+                // TODO: Implement the actual split logic
+                console.log("Splitting list with distribution:", sublists)
+              }}
+              name="subLists"
+              value={sublists.map((sl) => sl.leadsCount).join(",")}
+            >
+              Confirmar divisão
+            </Button>
+          </Form>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog.Root>
   )
 }
+
+/*
+type LeadsSectionProps = {
+  list: Awaited<ReturnType<typeof ListService.getById>>
+}
+
+function LeadsSection({ list }: LeadsSectionProps) {
+  if (!list) return null
+
+  return (
+    <>
+      <header>
+        <h2 className="font-semibold text-lg text-primary-700">
+          Leads ({list.leads.length})
+        </h2>
+      </header>
+
+      <table>
+        <thead>
+          <tr>
+            <th className="text-left">Nome</th>
+            <th className="text-left">CPF</th>
+            <th className="text-left">Telefone</th>
+            <th className="text-left">Estado</th>
+            <th className="text-left">Nascimento</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.leads.map((lead) => (
+            <tr key={lead.id}>
+              <td>{lead.name}</td>
+              <td>{lead.cpf}</td>
+              <td>{lead.phoneNumber}</td>
+              <td>{lead.state || "Não informado"}</td>
+              <td>
+                {lead.birthDate
+                  ? new Date(lead.birthDate).toLocaleDateString()
+                  : "Não informado"}
+              </td>
+              {Object.values(lead.extraInfo || {}).map((value, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                <td key={index} className="text-left">
+                  {typeof value === "string" ? value : JSON.stringify(value)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  )
+}
+  */
