@@ -246,7 +246,7 @@ function SplitListDialog() {
     (sum, sublist) => sum + sublist.leadsCount,
     0,
   )
-  const remainingLeads = list.leadsCount - totalDistributed
+  const remainingLeads = list.freeLeadsCount - totalDistributed
 
   return (
     <Dialog.Root>
@@ -312,7 +312,7 @@ function SplitListDialog() {
 
           <p className="text-zinc-600 *:text-primary-500">
             <strong>{totalDistributed}</strong> de{" "}
-            <strong>{list.leadsCount}</strong> leads distribuídos entre{" "}
+            <strong>{list.freeLeadsCount}</strong> leads distribuídos entre{" "}
             <strong>{sublists.length}</strong>{" "}
             {sublists.length === 1 ? "listinha" : "listinhas"}.
           </p>
