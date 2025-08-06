@@ -36,11 +36,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             {[
               ["Listas", "/listas"],
               ["Home", "/app"],
-            ].map(([name, path]) => (
+              ["Sair", "/logout", "danger"],
+            ].map(([name, path, danger]) => (
               <li key={name}>
                 <NavLink
                   className={({ isActive }) =>
-                    isActive ? "text-accent-700 underline" : "text-gray-500"
+                    isActive
+                      ? "text-accent-700 underline"
+                      : danger
+                        ? "text-red-700"
+                        : "text-gray-500"
                   }
                   to={path}
                 >

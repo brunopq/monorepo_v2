@@ -4,6 +4,7 @@ export default [
     index("routes/index.tsx"),
     route('/app', 'routes/home.tsx'),
     route('/login', 'routes/login.tsx'),
+    route('/logout', 'routes/logout.tsx'),
     ...prefix('/users', [
         route('/', 'routes/users/index.tsx'),
     ]),
