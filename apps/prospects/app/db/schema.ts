@@ -115,3 +115,14 @@ export const subListRelations = relations(subLists, ({ one, many }) => ({
     }),
     leads: many(leads),
 }))
+
+export const interactionRelations = relations(leadInteractions, ({ one }) => ({
+    lead: one(leads, {
+        fields: [leadInteractions.leadId],
+        references: [leads.id],
+    }),
+    seller: one(users, {
+        fields: [leadInteractions.sellerId],
+        references: [users.id],
+    }),
+}))

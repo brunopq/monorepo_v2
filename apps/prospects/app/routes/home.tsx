@@ -1,11 +1,12 @@
 import type { Route } from "./+types/home"
-import { Link, NavLink } from "react-router"
+import { Link, NavLink, useLoaderData } from "react-router"
 
 import { maxWidth } from "~/utils/styling"
 import { getUserOrRedirect } from "~/utils/authGuard"
 
 import ListService, { type DomainList } from "~/services/ListService"
 import { Button } from "iboti-ui"
+import SubListService from "~/services/SubListService"
 
 export function meta() {
   return [{ title: "Prospects" }]
@@ -15,12 +16,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUserOrRedirect(request, "/login")
 
   const lists = user.role === "ADMIN" ? await ListService.getAll() : undefined
-  // const subLists = await SubListService.getForUser(user.id)
+  const subLists = await SubListService.getForUser(user.id)
 
   return {
     user,
     lists,
-    // subLists,
+    subLists,
   }
 }
 
@@ -61,21 +62,50 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <h2 className="font-semibold text-xl">Olá, {user.name}!</h2>
       </div>
 
-      {lists?.length && <ListsList lists={lists} />}
+      {user.role === "ADMIN" && <ListsList />}
+
+      <SubListsList />
     </div>
   )
 }
 
-type ListsListProps = {
-  lists: DomainList[]
-}
+function SubListsList() {
+  const { subLists } = useLoaderData<typeof loader>()
 
-function ListsList({ lists }: ListsListProps) {
   return (
     <div className="mt-4">
       <header className="mb-2 flex items-center justify-between">
         <h3 className="font-semibold text-lg text-primary-700">
-          Suas Listas ({lists.length})
+          Suas listinhas ({subLists.length})
+        </h3>
+      </header>
+      <ul className="space-y-2">
+        {subLists?.map((subList) => (
+          <li
+            key={subList.id}
+            className="border-primary-500 border-l-[3px] pl-3"
+          >
+            <Link
+              to={`/listinhas/${subList.id}`}
+              className="text-primary-600 hover:text-primary-800"
+            >
+              {subList.leadsCount} leads
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function ListsList() {
+  const { lists } = useLoaderData<typeof loader>()
+
+  return (
+    <div className="mt-4">
+      <header className="mb-2 flex items-center justify-between">
+        <h3 className="font-semibold text-lg text-primary-700">
+          Suas Listas ({lists?.length || 0})
         </h3>
 
         <Button asChild variant="secondary" size="sm">
@@ -85,7 +115,7 @@ function ListsList({ lists }: ListsListProps) {
         </Button>
       </header>
       <ul className="space-y-2">
-        {lists.map((list) => (
+        {lists?.map((list) => (
           <ListCard key={list.id} list={list} />
         ))}
       </ul>
