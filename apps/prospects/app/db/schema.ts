@@ -2,6 +2,8 @@ import { relations } from 'drizzle-orm'
 import { char, date, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { customAlphabet } from 'nanoid'
 
+import { subListStates } from '~/services/SubListService'
+
 const idLength = 12
 const nanoid = customAlphabet(
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -41,18 +43,13 @@ export const leads = pgTable('leads', {
     extraInfo: jsonb(),
 })
 
-export const subListStates = pgEnum('sub_list_states', [
-    'new',
-    'in_progress',
-    'completed',
-    'canceled',
-])
+export const subListStatesEnum = pgEnum('sub_list_states', subListStates)
 
 export const subLists = pgTable('sub_lists', {
     ...baseTable,
     parentListId: text().references(() => lists.id).notNull(),
     assigneeId: text().references(() => users.id),
-    state: subListStates().notNull(),
+    state: subListStatesEnum().notNull(),
 })
 
 export const interactionTypes = pgEnum('interaction_types', [

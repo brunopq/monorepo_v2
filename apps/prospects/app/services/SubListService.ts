@@ -1,6 +1,16 @@
 import { eq } from "drizzle-orm";
+
 import { db } from "~/db";
-import { leads } from "~/db/schema";
+import { leads, subLists } from "~/db/schema";
+
+export const subListStates = [
+    'new',
+    'in_progress',
+    'completed',
+    'canceled',
+] as const;
+
+export type SubListState = typeof subListStates[number];
 
 class SubListService {
     async getForList(listId: string) {
@@ -9,6 +19,7 @@ class SubListService {
             with: {
                 assignee: true,
             },
+            orderBy: (subLists, { asc }) => asc(subLists.id),
         })
 
         const slsWithCounts = await Promise.all(
@@ -21,6 +32,16 @@ class SubListService {
         )
 
         return slsWithCounts
+    }
+
+    async assign(id: string, assigneeId: string) {
+        const updatedSubList = await db
+            .update(subLists)
+            .set({ assigneeId })
+            .where(eq(subLists.id, id))
+            .returning();
+
+        return updatedSubList[0];
     }
 }
 

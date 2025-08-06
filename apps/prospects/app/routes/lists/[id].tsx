@@ -1,5 +1,6 @@
 import type { Route } from "./+types/[id]"
-import { Link, useLoaderData } from "react-router"
+import { Form } from "react-router"
+import { Link, useFetcher, useLoaderData } from "react-router"
 import {
   ArrowLeftIcon,
   FileStackIcon,
@@ -7,15 +8,17 @@ import {
   Trash2Icon,
   PlusIcon,
 } from "lucide-react"
-import { Button, Dialog, Input } from "iboti-ui"
-import { useState } from "react"
+import { Button, Dialog, Input, Select } from "iboti-ui"
+import { useEffect, useState } from "react"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
-import { maxWidth } from "~/utils/styling"
+import { cn, maxWidth } from "~/utils/styling"
 
 import ListService from "~/services/ListService"
-import { Form } from "react-router"
-import SubListService from "~/services/SubListService"
+import SubListService, { type SubListState } from "~/services/SubListService"
+
+import type { loader as usersLoader } from "~/routes/users"
+import type { action as subListAction } from "~/routes/subLists/[id]"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
@@ -80,24 +83,31 @@ export default function Id({ loaderData }: Route.ComponentProps) {
             </strong>
           </h1>
 
-          <p className="text-sm">
-            Criada por{" "}
-            <strong className="text-primary-600">{list.createdBy.name}</strong>
-          </p>
+          <div className="columns-2">
+            <p className="text-sm">
+              Criada por{" "}
+              <strong className="text-primary-600">
+                {list.createdBy.name}
+              </strong>
+            </p>
 
-          <p className="text-sm">
-            Origem: <strong className="text-primary-600">{list.origin}</strong>
-          </p>
+            <p className="text-sm">
+              Origem:{" "}
+              <strong className="text-primary-600">{list.origin}</strong>
+            </p>
 
-          <p className="text-sm">
-            Leads:{" "}
-            <strong className="text-primary-600">{list.leadsCount}</strong>
-          </p>
+            <p className="text-sm">
+              Leads:{" "}
+              <strong className="text-primary-600">{list.leadsCount}</strong>
+            </p>
 
-          <p className="text-sm">
-            Leads não atribuídos:{" "}
-            <strong className="text-primary-600">{list.freeLeadsCount}</strong>
-          </p>
+            <p className="text-sm">
+              Leads não atribuídos:{" "}
+              <strong className="text-primary-600">
+                {list.freeLeadsCount}
+              </strong>
+            </p>
+          </div>
         </div>
 
         <span className="ml-auto flex flex-col gap-1">
@@ -128,7 +138,7 @@ export default function Id({ loaderData }: Route.ComponentProps) {
 
       <main className="mt-6 space-y-8">
         <section>
-          <SubListsSection subLists={subLists} />
+          <SubListsSection />
         </section>
 
         {/* <section>
@@ -139,12 +149,11 @@ export default function Id({ loaderData }: Route.ComponentProps) {
   )
 }
 
-type SubListsSectionProps = {
-  subLists: Awaited<ReturnType<typeof SubListService.getForList>>
-}
 
-function SubListsSection({ subLists }: SubListsSectionProps) {
-  if (!subLists) return null
+function SubListsSection() {
+  const { subLists, list } = useLoaderData<typeof loader>()
+
+  const canMakeSublists = list.freeLeadsCount > 0
 
   return (
     <>
@@ -159,31 +168,114 @@ function SubListsSection({ subLists }: SubListsSectionProps) {
           </p>
         </span>
 
-        <span>
-          <SplitListDialog />
-        </span>
+        <span>{canMakeSublists && <SplitListDialog />}</span>
       </header>
 
-      <div>
+      <div className="space-y-4">
         {subLists.map((subList) => (
-          <div
-            key={subList.id}
-            className="mb-4 border-primary-500 border-l-[3px] pl-3"
-          >
-            <h3 className="font-semibold text-lg text-primary-800">Listinha</h3>
-            <p className="text-sm text-zinc-600">Leads: {subList.leadsCount}</p>
-            <p className="text-sm text-zinc-600">{subList.state}</p>
-            {subList.assignee ? (
-              <p className="text-sm text-zinc-600">
-                Atribuída a: {subList.assignee.name}
-              </p>
-            ) : (
-              <p className="text-sm text-zinc-600">Não atribuída</p>
-            )}
-          </div>
+          <SubListCard key={subList.id} subList={subList} />
         ))}
       </div>
     </>
+  )
+}
+
+type SubListCardProps = {
+  subList: Awaited<ReturnType<typeof SubListService.getForList>>[number]
+}
+
+function SubListCard({ subList }: SubListCardProps) {
+  return (
+    <div key={subList.id} className="border-primary-500 border-l-[3px] pl-3">
+      <header className="flex items-center gap-2">
+        <h3 className="font-semibold text-lg text-primary-800">Listinha</h3>
+        <SubListStatePill state={subList.state} />
+      </header>
+
+      <label className="text-sm">
+        <span className="mr-2">Atribuído a:</span>
+        <SubListAsigneeSelect
+          subListId={subList.id}
+          assigneeId={subList.assigneeId || undefined}
+        />
+      </label>
+
+      <p className="text-sm text-zinc-600">Leads: {subList.leadsCount}</p>
+    </div>
+  )
+}
+
+type SubListAsigneeSelectProps = {
+  subListId: string
+  assigneeId?: string
+}
+
+function SubListAsigneeSelect({
+  subListId,
+  assigneeId,
+}: SubListAsigneeSelectProps) {
+  const usersFetcher = useFetcher<typeof usersLoader>({ key: "users" })
+  const assigneeFetcher = useFetcher<typeof subListAction>()
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: causes an infinite loop
+  useEffect(() => {
+    usersFetcher.load("/users")
+  }, [])
+
+  const handleValueChange = (value: string) => {
+    assigneeFetcher.submit(
+      { assigneeId: value },
+      { method: "PATCH", action: `/listinhas/${subListId}` },
+    )
+  }
+
+  return (
+    <Select.Root defaultValue={assigneeId} onValueChange={handleValueChange}>
+      <Select.Trigger className="inline-flex w-fit px-3 py-1 text-sm">
+        <Select.Value placeholder="Atribuir a um vendedor" />
+      </Select.Trigger>
+
+      <Select.Content>
+        {usersFetcher.data?.users.map((assignee) => (
+          <Select.Item
+            key={assignee.id}
+            value={assignee.id}
+            className="cursor-pointer"
+          >
+            {assignee.name}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select.Root>
+  )
+}
+
+type SubListStatePillProps = {
+  state: SubListState
+}
+
+function SubListStatePill({ state }: SubListStatePillProps) {
+  return (
+    <span
+      className={cn(
+        "inline-block rounded-full px-3 py-0.5 font-medium text-xs",
+        {
+          "bg-primary-200/75 text-primary-800": state === "new",
+          "bg-yellow-200/75 text-yellow-800": state === "in_progress",
+          "bg-green-200/75 text-green-800": state === "completed",
+          "bg-red-200/75 text-red-800": state === "canceled",
+        },
+      )}
+    >
+      {
+        {
+          new: "Nova",
+          in_progress: "Em andamento",
+          completed: "Concluída",
+          canceled: "Cancelada",
+        }[state]
+      }
+    </span>
   )
 }
 

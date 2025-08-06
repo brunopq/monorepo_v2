@@ -4,8 +4,14 @@ export default [
     index("routes/index.tsx"),
     route('/app', 'routes/home.tsx'),
     route('/login', 'routes/login.tsx'),
+    ...prefix('/users', [
+        route('/', 'routes/users/index.tsx'),
+    ]),
     ...prefix('/listas', [
         route('/novo', 'routes/lists/new.tsx'),
         route('/:id', 'routes/lists/[id].tsx'),
+    ]),
+    ...prefix('/listinhas', [
+        route('/:id', 'routes/subLists/[id].tsx'),
     ])
 ] satisfies RouteConfig;

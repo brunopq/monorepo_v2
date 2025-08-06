@@ -68,6 +68,26 @@ userRouter.get("/me", (c) => {
   })
 })
 
+userRouter.get("/:id", zValidator('param', z.object({
+  id: z.string().uuid(),
+})), async (c) => {
+  const userId = c.req.param("id")
+
+  const user = await UserService.findById(userId)
+
+  if (!user) {
+    throw new HTTPException(404, { message: `User with id "${userId}" not found` })
+  }
+
+  return c.json({
+    id: user.id,
+    name: user.name,
+    fullName: user.fullName,
+    role: user.role,
+    accountActive: user.accountActive,
+  })
+})
+
 userRouter.post(
   "/",
   authGuard("ADMIN"),
