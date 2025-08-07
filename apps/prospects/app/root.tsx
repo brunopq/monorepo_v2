@@ -10,6 +10,8 @@ import {
 
 import type { Route } from "./+types/root"
 
+import { Toaster } from "iboti-ui"
+
 import "iboti-ui/styles" // Adds the pre built tailwind styles for the ui package
 import "./app.css"
 
@@ -37,7 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        {/* <Toaster />  */}{/* we'll add it later */}
+        <Toaster />
         <ScrollRestoration />
         <Scripts />
         <div id="portal" />

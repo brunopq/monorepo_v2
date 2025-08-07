@@ -6,6 +6,7 @@
     "dev:auauth": "bun --bun run --filter auauth dev",
     "dev:vendas": "bun run --filter vendas dev",
     "dev:prevenda": "bun --bun run --filter prevenda dev",
+    "build:packages": "bun --bun run --filter iboti-ui build",
     "db:up": "docker compose -f infrastructure/compose.yml up",
     "db:down": "docker compose -f infrastructure/compose.yml down",
     "db:hack": "docker compose -f infrastructure/compose.yml exec -it db bash",
