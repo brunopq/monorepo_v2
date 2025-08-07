@@ -11,9 +11,7 @@ export const interactionStatuses = [
     'no_response',
     'wrong_person',
     'no_interest',
-    'has_interest',
     'not_reachable',
-    'not_interested',
     'interested',
     'converted', // lead converted to customer
     'lost' // lead lost

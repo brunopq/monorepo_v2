@@ -7,6 +7,7 @@ import {
 
 import { db } from "../db"
 import { leadInteractions } from "../db/schema"
+import { eq } from "drizzle-orm"
 
 export const interactionTypeSchema = z.enum(interactionTypes)
 export const interactionStatusSchema = z.enum(interactionStatuses)
@@ -43,6 +44,15 @@ class InteractionService {
         })
 
         return interaction
+    }
+
+    async delete(interactionId: string) {
+        console.log("Deleting interaction with ID:", interactionId)
+        const deleted = await db.delete(leadInteractions).where(
+            eq(leadInteractions.id, interactionId)
+        )
+
+        return deleted
     }
 }
 

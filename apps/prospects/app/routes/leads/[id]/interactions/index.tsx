@@ -1,4 +1,4 @@
-import type { Route } from "./+types/interactions"
+import type { Route } from "./+types"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 
@@ -33,5 +33,5 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
     }
   }
 
-  await InteractionService.create(data)
+  return await InteractionService.create(data)
 }

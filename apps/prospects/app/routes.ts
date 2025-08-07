@@ -17,7 +17,10 @@ export default [
     ]),
     ...prefix('/leads', [
         ...prefix('/:id', [
-            route('/interactions', 'routes/leads/[id]/interactions.tsx'),
+            ...prefix('/interactions', [
+                index('routes/leads/[id]/interactions/index.tsx'),
+                route('/:id', 'routes/leads/[id]/interactions/[id].tsx'),
+            ]),
         ])
     ]),
 ] satisfies RouteConfig;
