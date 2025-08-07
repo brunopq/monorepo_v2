@@ -1,7 +1,9 @@
+import type React from "react"
+import { useState } from "react"
 import type { Route } from "./+types/[id]"
 import { ArrowLeftIcon } from "lucide-react"
-import { Link } from "react-router"
-import { Button, Table } from "iboti-ui"
+import { Form, Link } from "react-router"
+import { Button, Table, Input, Select } from "iboti-ui"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { maxWidth } from "~/utils/styling"
@@ -9,6 +11,11 @@ import { maxWidth } from "~/utils/styling"
 import SubListService from "~/services/SubListService"
 
 import { SubListStatusPill } from "~/components/SubListStatusPill"
+import type {
+  DomainLead,
+  DomainLeadWithInteractions,
+} from "~/services/LeadService"
+import { interactionStatuses, interactionTypes } from "~/constants/interactions"
 
 export const loader = async ({ request, params }: Route.LoaderArgs) => {
   const user = await getUserOrRedirect(request, "/login")
@@ -88,15 +95,142 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
           </Table.Header>
           <Table.Body>
             {subList.leads.map((lead) => (
-              <Table.Row key={lead.id}>
-                <Table.Cell>{lead.name}</Table.Cell>
-                <Table.Cell>{lead.cpf}</Table.Cell>
-                <Table.Cell>{lead.phoneNumber}</Table.Cell>
-              </Table.Row>
+              <LeadRow
+                key={lead.id}
+                lead={{
+                  ...lead,
+                  extra: lead.extraInfo as unknown as Record<string, string>,
+                  interactions: lead.interactions.map((i) => ({
+                    ...i,
+                    notes: i.notes || undefined,
+                  })),
+                }}
+              />
             ))}
           </Table.Body>
         </Table.Root>
       </div>
     </div>
+  )
+}
+
+type LeadRowProps = {
+  lead: DomainLeadWithInteractions
+}
+
+function LeadRow({ lead }: LeadRowProps) {
+  const [open, setOpen] = useState(false)
+
+  const handleToggle = () => setOpen(!open)
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      handleToggle()
+    }
+  }
+
+  return (
+    <>
+      <Table.Row
+        data-open={open}
+        onClick={handleToggle}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        // biome-ignore lint/a11y/useSemanticElements: <explanation>
+        role="button"
+        aria-expanded={open}
+        className="cursor-pointer transition-colors focus:bg-zinc-100 focus:outline-none data-[open=true]:bg-primary-100"
+      >
+        <Table.Cell>{lead.name}</Table.Cell>
+        <Table.Cell>{lead.cpf}</Table.Cell>
+        <Table.Cell>{lead.phoneNumber}</Table.Cell>
+      </Table.Row>
+
+      <Table.Row
+        data-open={open}
+        className="hidden transition-colors data-[open=true]:table-row data-[open=true]:bg-primary-100"
+      >
+        <Table.Cell colSpan={20} className="p-4">
+          <h3 className="font-semibold">Interações</h3>
+
+          <span>
+            Nova interação:
+            <Form method="post" action={`/subLists/${lead.id}/interactions`}>
+              <div className="grid grid-cols-[1fr_1fr_auto] grid-rows-2 gap-2">
+                <Select.Root
+                  name="interactionType"
+                >
+                  <Select.Trigger>
+                    <Select.Value placeholder="Selecione o tipo de interação" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {interactionTypes.map((type) => (
+                      <Select.Item key={type} value={type}>
+                        {type.replace(/_/g, " ")}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Root>
+
+                <Select.Root
+                  name="status"
+                >
+                  <Select.Trigger>
+                    <Select.Value placeholder="Selecione o status" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {interactionStatuses.map((status) => (
+                      <Select.Item key={status} value={status}>
+                        {status.replace(/_/g, " ")}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Root>
+
+                <Input
+                  name="notes"
+                  placeholder="Notas (opcional)"
+                  className="col-span-2"
+                />
+
+                <Button
+                  className="col-start-3 row-span-2 row-start-1 ml-4 self-center"
+                  type="submit"
+                >
+                  Registrar interação
+                </Button>
+              </div>
+            </Form>
+          </span>
+
+          <div className="space-y-2">
+            {lead.interactions.length > 0 ? (
+              lead.interactions.map((interaction) => (
+                <div key={interaction.id} className="rounded border p-2">
+                  <p>
+                    <strong>Tipo:</strong> {interaction.interactionType}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {interaction.status}
+                  </p>
+                  <p>
+                    <strong>Data:</strong>{" "}
+                    {new Date(interaction.contactedAt).toLocaleDateString()}
+                  </p>
+                  {interaction.notes && (
+                    <p>
+                      <strong>Notas:</strong> {interaction.notes}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p>Nenhuma interação registrada.</p>
+            )}
+          </div>
+        </Table.Cell>
+      </Table.Row>
+    </>
   )
 }

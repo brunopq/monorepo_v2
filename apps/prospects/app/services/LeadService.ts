@@ -1,5 +1,6 @@
 import { db } from '~/db'
 import { leads } from '~/db/schema'
+import type { DomainInteraction } from './InteractionService'
 
 type DbLead = typeof leads.$inferSelect
 type NewDbLead = typeof leads.$inferInsert
@@ -14,6 +15,10 @@ export type DomainLead = {
     birthDate: string | null;
     state: string | null;
     extra: Record<string, string> | null;
+}
+
+export type DomainLeadWithInteractions = DomainLead & {
+    interactions: DomainInteraction[];
 }
 
 export type NewDomainLead = Omit<DomainLead, 'id'>
