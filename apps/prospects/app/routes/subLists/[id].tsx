@@ -120,6 +120,7 @@ type LeadRowProps = {
 
 function LeadRow({ lead }: LeadRowProps) {
   const [open, setOpen] = useState(false)
+  const [showForm, setShowForm] = useState(false)
 
   const handleToggle = () => setOpen(!open)
 
@@ -140,7 +141,7 @@ function LeadRow({ lead }: LeadRowProps) {
         // biome-ignore lint/a11y/useSemanticElements: <explanation>
         role="button"
         aria-expanded={open}
-        className="cursor-pointer transition-colors focus:bg-zinc-100 focus:outline-none data-[open=true]:bg-primary-100"
+        className="cursor-pointer transition-colors focus:bg-zinc-100 focus:outline-none data-[open=true]:bg-zinc-100"
       >
         <Table.Cell>{lead.name}</Table.Cell>
         <Table.Cell>{lead.cpf}</Table.Cell>
@@ -149,20 +150,36 @@ function LeadRow({ lead }: LeadRowProps) {
 
       <Table.Row
         data-open={open}
-        className="hidden transition-colors data-[open=true]:table-row data-[open=true]:bg-primary-100"
+        className="hidden transition-colors data-[open=true]:table-row data-[open=true]:bg-zinc-100"
       >
         <Table.Cell colSpan={20} className="p-4">
-          <h3 className="font-semibold">Interações</h3>
+          <header className="mb-2 flex items-center justify-between">
+            <h3 className="font-semibold text-lg text-primary-800">
+              Interações
+            </h3>
 
-          <span>
-            Nova interação:
-            <Form method="post" action={`/subLists/${lead.id}/interactions`}>
-              <div className="grid grid-cols-[1fr_1fr_auto] grid-rows-2 gap-2">
-                <Select.Root
-                  name="interactionType"
-                >
-                  <Select.Trigger>
-                    <Select.Value placeholder="Selecione o tipo de interação" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowForm(!showForm)}
+              className="ml-2"
+            >
+              {showForm ? "Fechar formulário" : "Registrar nova interação"}
+            </Button>
+          </header>
+
+          {showForm && (
+            <Form
+              navigate={false}
+              method="post"
+              action={`/leads/${lead.id}/interactions`}
+              onSubmit={() => setShowForm(false)}
+              className="inset-shadow-accent-700/15 inset-shadow-sm mb-2 rounded-md border border-accent-200 bg-accent-200/20 p-2 shadow-accent-700/15 shadow-sm"
+            >
+              <div className="grid grid-cols-[1fr_1fr_auto] grid-rows-2 gap-1">
+                <Select.Root name="interactionType">
+                  <Select.Trigger className="text-sm">
+                    <Select.Value placeholder="Selecione o canal da interação" />
                   </Select.Trigger>
                   <Select.Content>
                     {interactionTypes.map((type) => (
@@ -173,10 +190,8 @@ function LeadRow({ lead }: LeadRowProps) {
                   </Select.Content>
                 </Select.Root>
 
-                <Select.Root
-                  name="status"
-                >
-                  <Select.Trigger>
+                <Select.Root name="interactionStatus">
+                  <Select.Trigger className="text-sm">
                     <Select.Value placeholder="Selecione o status" />
                   </Select.Trigger>
                   <Select.Content>
@@ -191,32 +206,32 @@ function LeadRow({ lead }: LeadRowProps) {
                 <Input
                   name="notes"
                   placeholder="Notas (opcional)"
-                  className="col-span-2"
+                  className="col-span-2 text-sm"
                 />
 
                 <Button
-                  className="col-start-3 row-span-2 row-start-1 ml-4 self-center"
+                  className="col-start-3 row-span-2 row-start-1 ml-2 self-center"
                   type="submit"
                 >
                   Registrar interação
                 </Button>
               </div>
             </Form>
-          </span>
+          )}
 
           <div className="space-y-2">
             {lead.interactions.length > 0 ? (
               lead.interactions.map((interaction) => (
-                <div key={interaction.id} className="rounded border p-2">
-                  <p>
-                    <strong>Tipo:</strong> {interaction.interactionType}
-                  </p>
-                  <p>
-                    <strong>Status:</strong> {interaction.status}
-                  </p>
+                <div key={interaction.id} className="flex gap-3 text-sm">
                   <p>
                     <strong>Data:</strong>{" "}
                     {new Date(interaction.contactedAt).toLocaleDateString()}
+                  </p>
+                  <p>
+                    <strong>Canal:</strong> {interaction.interactionType}
+                  </p>
+                  <p>
+                    <strong>Status:</strong> {interaction.status}
                   </p>
                   {interaction.notes && (
                     <p>

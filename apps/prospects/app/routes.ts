@@ -14,5 +14,10 @@ export default [
     ]),
     ...prefix('/listinhas', [
         route('/:id', 'routes/subLists/[id].tsx'),
-    ])
+    ]),
+    ...prefix('/leads', [
+        ...prefix('/:id', [
+            route('/interactions', 'routes/leads/[id]/interactions.tsx'),
+        ])
+    ]),
 ] satisfies RouteConfig;
