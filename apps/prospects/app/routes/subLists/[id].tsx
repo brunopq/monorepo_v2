@@ -1,11 +1,24 @@
 import type React from "react"
 import { useState } from "react"
 import type { Route } from "./+types/[id]"
-import { ArrowLeftIcon, PencilLineIcon, Trash2Icon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  PencilLineIcon,
+  Trash2Icon,
+  MessageCircleIcon,
+  PhoneIcon,
+  MailIcon,
+  MoreHorizontalIcon,
+} from "lucide-react"
 import { Form, Link, useFetcher } from "react-router"
 import { Button, Table, Input, Select } from "iboti-ui"
 
-import { interactionStatuses, interactionTypes } from "~/constants/interactions"
+import {
+  interactionStatuses,
+  interactionTypes,
+  interactionStatusesLabels,
+  interactionTypesLabels,
+} from "~/constants/interactions"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
@@ -255,6 +268,23 @@ type NewInteractionFormProps = {
   onClose: () => void
 }
 
+const getInteractionTypeIcon = (type: string) => {
+  switch (type) {
+    case "whatsapp_message":
+      return <MessageCircleIcon className="size-4 text-green-700" />
+    case "whatsapp_call":
+      return <PhoneIcon className="size-4 text-green-700" />
+    case "call":
+      return <PhoneIcon className="size-4" />
+    case "email":
+      return <MailIcon className="size-4" />
+    case "other":
+      return <MoreHorizontalIcon className="size-4" />
+    default:
+      return null
+  }
+}
+
 function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
   return (
     <Form
@@ -272,7 +302,10 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
           <Select.Content>
             {interactionTypes.map((type) => (
               <Select.Item key={type} value={type}>
-                {type.replace(/_/g, " ")}
+                <div className="flex items-center gap-2">
+                  {getInteractionTypeIcon(type)}
+                  {interactionTypesLabels[type]}
+                </div>
               </Select.Item>
             ))}
           </Select.Content>
@@ -285,7 +318,7 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
           <Select.Content>
             {interactionStatuses.map((status) => (
               <Select.Item key={status} value={status}>
-                {status.replace(/_/g, " ")}
+                {interactionStatusesLabels[status]}
               </Select.Item>
             ))}
           </Select.Content>
@@ -382,8 +415,12 @@ function LeadInteractionRow({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <span className="mr-2 font-semibold text-primary-800">
-            {interaction.interactionType.replace(/_/g, " ")}
+          <span className="mr-2 inline-flex items-center gap-1 font-semibold text-primary-800">
+            {
+              interactionTypesLabels[
+                interaction.interactionType as keyof typeof interactionTypesLabels
+              ]
+            }
           </span>
           <span
             className={cn(
@@ -391,7 +428,11 @@ function LeadInteractionRow({
               statusStyles.pillBg,
             )}
           >
-            {interaction.status.replace(/_/g, " ")}
+            {
+              interactionStatusesLabels[
+                interaction.status as keyof typeof interactionStatusesLabels
+              ]
+            }
           </span>
           <p className="text-sm text-zinc-500">Vendedor: {sellerName}</p>
           {interaction.notes && (
