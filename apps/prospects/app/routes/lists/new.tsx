@@ -294,7 +294,7 @@ async function extractLeadsFromFile(
   }
 }
 
-export default function NewList() {
+export default function NewList({actionData}: Route.ComponentProps) {
   const fetcher = useFetcher()
 
   const [listName, setListName] = useState("")

@@ -3,6 +3,7 @@ export { Input, InputProps } from "./components/input"
 import * as BaseDialog from "./components/dialog"
 import * as BaseSelect from "./components/select"
 import * as BaseTable from "./components/table"
+import * as ToastPrimitives from "./components/toast"
 
 export const Dialog = {
   Root: BaseDialog.Dialog,
@@ -38,3 +39,16 @@ export const Table = {
   Row: BaseTable.TableRow,
   Footer: BaseTable.TableFooter,
 }
+
+export const Toast = {
+  Provider: ToastPrimitives.ToastProvider,
+  Viewport: ToastPrimitives.ToastViewport,
+  Title: ToastPrimitives.ToastTitle,
+  Description: ToastPrimitives.ToastDescription,
+  Action: ToastPrimitives.ToastAction,
+  Close: ToastPrimitives.ToastClose,
+}
+
+export const useToast = ToastPrimitives.useToast
+export const toast = ToastPrimitives.toast
+export const Toaster = ToastPrimitives.Toaster

@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { char, date, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { customAlphabet } from 'nanoid'
+import { interactionStatuses, interactionTypes } from '~/constants/interactions'
 
 import { subListStates } from '~/services/SubListService'
 
@@ -52,34 +53,17 @@ export const subLists = pgTable('sub_lists', {
     state: subListStatesEnum().notNull(),
 })
 
-export const interactionTypes = pgEnum('interaction_types', [
-    'whatsapp_message',
-    'whatsapp_call',
-    'call',
-    'email',
-    'other' // I have no idea what that might be
-])
+export const interactionTypesEnum = pgEnum('interaction_types', interactionTypes)
 
-export const interactionStatuses = pgEnum('interaction_statuses', [
-    'waiting_response',
-    'no_response',
-    'wrong_person',
-    'no_interest',
-    'has_interest',
-    'not_reachable',
-    'not_interested',
-    'interested',
-    'converted', // lead converted to customer
-    'lost' // lead lost
-])
+export const interactionStatusesEnum = pgEnum('interaction_statuses', interactionStatuses)
 
 export const leadInteractions = pgTable('lead_interactions', {
     ...baseTable,
     leadId: text().references(() => leads.id).notNull(),
     sellerId: text().references(() => users.id).notNull(),
     contactedAt: timestamp({ mode: 'date', withTimezone: true }).notNull(),
-    interactionType: interactionTypes().notNull(),
-    status: interactionStatuses().notNull(),
+    interactionType: interactionTypesEnum().notNull(),
+    status: interactionStatusesEnum().notNull(),
     notes: text(),
 })
 
