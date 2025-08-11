@@ -18,8 +18,12 @@ export type DomainList = {
 type NewDomainList = Omit<DomainList, "id" | "createdAt">
 
 class ListService {
-    async getAll(): Promise<DbList[]> {
-        return await db.query.lists.findMany()
+    async getAll() {
+        return await db.query.lists.findMany({
+            with: {
+                subLists: true
+            }
+        })
     }
 
     async create(list: NewDomainList): Promise<DomainList> {

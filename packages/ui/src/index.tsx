@@ -5,6 +5,8 @@ import * as BaseSelect from "./components/select"
 import * as BaseTable from "./components/table"
 import * as ToastPrimitives from "./components/toast"
 
+export { PieChart } from "./components/charts/pie"
+
 export const Dialog = {
   Root: BaseDialog.Dialog,
   Close: BaseDialog.DialogClose,

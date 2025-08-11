@@ -1,16 +1,18 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm"
 
-import { db } from "~/db";
-import { leads, subLists } from "~/db/schema";
+import { db } from "~/db"
+import { leadInteractions, leads, subLists } from "~/db/schema"
+import type { InteractionStatuses } from "./InteractionService"
+import { interactionStatuses } from '../constants/interactions'
 
 export const subListStates = [
-    'new',
-    'in_progress',
-    'completed',
-    'canceled',
-] as const;
+    "new",
+    "in_progress",
+    "completed",
+    "canceled",
+] as const
 
-export type SubListState = typeof subListStates[number];
+export type SubListState = (typeof subListStates)[number]
 
 class SubListService {
     // TODO: optimize the aggregation step, ideally make one query per method
@@ -25,11 +27,10 @@ class SubListService {
 
         const slsWithCounts = await Promise.all(
             sls.map(async (sl) => {
-                const c = await db
-                    .$count(leads, eq(leads.subListId, sl.id))
+                const c = await db.$count(leads, eq(leads.subListId, sl.id))
 
                 return { ...sl, leadsCount: c }
-            })
+            }),
         )
 
         return slsWithCounts
@@ -40,18 +41,79 @@ class SubListService {
             where: (subLists, { eq }) => eq(subLists.assigneeId, userId),
             with: {
                 assignee: true,
+                parentList: true,
             },
             orderBy: (subLists, { asc }) => asc(subLists.id),
         })
 
         const slsWithCounts = await Promise.all(
             sls.map(async (sl) => {
-                const c = await db
-                    .$count(leads, eq(leads.subListId, sl.id))
+                const [{ contactedLeadsCount, leadsCount }] = await db
+                    .select({
+                        leadsCount: sql`count(distinct ${leads.id}) as leads_count`,
+                        contactedLeadsCount: sql`count(distinct ${leadInteractions.leadId}) as contacted_leads_count`
+                    })
+                    .from(leads)
+                    .leftJoin(leadInteractions, eq(leads.id, leadInteractions.leadId))
+                    .where(eq(leads.subListId, sl.id))
 
-                return { ...sl, leadsCount: c }
-            })
+
+                const ranked = db.$with('ranked_interactions').as(
+                    db.select({
+                        lead_id: leads.id,
+                        status: leadInteractions.status,
+                        status_rank: sql`CASE ${leadInteractions.status}
+                            WHEN 'converted' THEN 1
+                            WHEN 'interested' THEN 2
+                            WHEN 'waiting_response' THEN 3
+                            WHEN 'no_response' THEN 4
+                            WHEN 'wrong_person' THEN 5
+                            WHEN 'no_interest' THEN 6
+                            WHEN 'not_reachable' THEN 7
+                            WHEN 'lost' THEN 8
+                            ELSE 999 END`.as('status_rank'),
+                        rn: sql`ROW_NUMBER() OVER (PARTITION BY ${leads.id} ORDER BY
+                            CASE ${leadInteractions.status}
+                                WHEN 'converted' THEN 1
+                                WHEN 'interested' THEN 2
+                                WHEN 'waiting_response' THEN 3
+                                WHEN 'no_response' THEN 4
+                                WHEN 'wrong_person' THEN 5
+                                WHEN 'no_interest' THEN 6
+                                WHEN 'not_reachable' THEN 7
+                                WHEN 'lost' THEN 8
+                                ELSE 999 END
+                            )`.as('rn'),
+                    })
+                        .from(leads)
+                        .leftJoin(leadInteractions, eq(leads.id, leadInteractions.leadId))
+                        .where(eq(leads.subListId, sl.id))
+                );
+
+                const result = await db
+                    .with(ranked)
+                    .select({
+                        status: ranked.status,
+                        lead_count: sql<number>`COUNT(*)`,
+                    })
+                    .from(ranked)
+                    .where(sql`rn = 1`)
+                    .groupBy(ranked.status)
+                    .orderBy(sql`MIN(${ranked.status_rank})`)
+
+                console.log("result", result)
+
+                const record = Object.fromEntries(
+                    interactionStatuses.map((status) => [
+                        status,
+                        Number(result.find((r) => r.status === status)?.lead_count || 0)
+                    ]),
+                ) as Record<InteractionStatuses, number>
+
+                return { ...sl, leadsCount, contactedLeadsCount, record }
+            }),
         )
+
 
         return slsWithCounts
     }
@@ -63,8 +125,8 @@ class SubListService {
                 assignee: true,
                 leads: {
                     with: {
-                        interactions: true
-                    }
+                        interactions: true,
+                    },
                 },
             },
         })
@@ -73,8 +135,7 @@ class SubListService {
             return null
         }
 
-        const leadsCount = await db
-            .$count(leads, eq(leads.subListId, subList.id))
+        const leadsCount = await db.$count(leads, eq(leads.subListId, subList.id))
 
         return { ...subList, leadsCount }
     }
@@ -84,10 +145,10 @@ class SubListService {
             .update(subLists)
             .set({ assigneeId })
             .where(eq(subLists.id, id))
-            .returning();
+            .returning()
 
-        return updatedSubList[0];
+        return updatedSubList[0]
     }
 }
 
-export default new SubListService();
+export default new SubListService()
