@@ -15,12 +15,15 @@
   "scripts": {
     "build": "bun run build:code && bun run build:css",
     "build:code": "tsc",
-    "build:css": "tailwindcss -i ./tailwind.css -o ./dist/styles/styles.css && cp ./tailwind.css ./dist/tailwind.css"
+    "build:css": "tailwindcss -i ./tailwind.css -o ./dist/styles/styles.css && cp ./tailwind.css ./dist/tailwind.css",
+    "dev": "bun --watch ./src/preview.tsx",
+    "dev:css": "tailwindcss -i ./tailwind.css -o ./dist/styles/styles.css --watch"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.11",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
+    "bun-plugin-tailwind": "^0.0.15",
     "react": "^19.1.1",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3"

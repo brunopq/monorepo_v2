@@ -1,5 +1,5 @@
-export { Button, ButtonProps } from "./components/button"
-export { Input, InputProps } from "./components/input"
+export { Button, type ButtonProps } from "./components/button"
+export { Input, type InputProps } from "./components/input"
 import * as BaseDialog from "./components/dialog"
 import * as BaseSelect from "./components/select"
 import * as BaseTable from "./components/table"
