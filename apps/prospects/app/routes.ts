@@ -9,7 +9,7 @@ export default [
         route('/', 'routes/users/index.tsx'),
     ]),
     ...prefix('/listas', [
-        route('/novo', 'routes/lists/new.tsx'),
+        route('/novo', 'routes/lists/new/index.tsx'),
         route('/:id', 'routes/lists/[id].tsx'),
     ]),
     ...prefix('/listinhas', [
