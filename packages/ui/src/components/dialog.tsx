@@ -16,15 +16,17 @@ const DialogClose = DialogPrimitive.Close
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-zinc-900/75 backdrop-blur data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 grid h-screen place-items-center bg-zinc-900/75 backdrop-blur data-[state=closed]:animate-out data-[state=open]:animate-in",
       className,
     )}
     {...props}
-  />
+  >
+    {children}
+  </DialogPrimitive.Overlay>
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
@@ -33,26 +35,27 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed top-[50%] left-[50%] z-50 grid w-[min(calc(100%-1rem),var(--dialog-content-max-width,24rem))] translate-x-[-50%] translate-y-[-50%] gap-y-6 rounded-lg border border-zinc-300 bg-zinc-200 p-6 shadow-lg duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in dark:border-zinc-800 dark:bg-zinc-950",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close asChild className="absolute top-4 right-4 ">
-        <Button
-          className="p-1 hover:bg-red-200 hover:text-red-800"
-          variant="ghost"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </Button>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
+    <DialogOverlay>
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] relative grid max-h-[calc(100vh-4rem)] w-[min(calc(100%-1rem),var(--dialog-content-max-width,24rem))] gap-y-6 overflow-y-scroll rounded-lg border border-zinc-300 bg-zinc-200 p-6 shadow-lg duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in dark:border-zinc-800 dark:bg-zinc-950",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close asChild className="absolute top-4 right-4">
+          <Button
+            className="p-1 hover:bg-red-200 hover:text-red-800"
+            variant="ghost"
+          >
+            <X className="size-4" />
+            <span className="sr-only">Close</span>
+          </Button>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogOverlay>
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
