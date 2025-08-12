@@ -5,13 +5,8 @@ import { Check, ChevronDown } from "lucide-react"
 import { cn, glass } from "../utils/classes"
 
 type SelectProps = { size?: "sm" | "md" | "lg" }
-type SelectRootProps = React.ComponentPropsWithoutRef<
-  typeof SelectPrimitive.Root
->
 
-const Select = ({ children, ...props }: SelectRootProps) => (
-  <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>
-)
+const Select = SelectPrimitive.Root
 
 const SelectGroup = SelectPrimitive.Group
 
