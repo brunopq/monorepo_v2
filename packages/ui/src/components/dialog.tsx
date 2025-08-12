@@ -39,7 +39,7 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] relative grid max-h-[calc(100vh-4rem)] w-[min(calc(100%-1rem),var(--dialog-content-max-width,24rem))] gap-y-6 overflow-y-scroll rounded-lg border border-zinc-300 bg-zinc-200 p-6 shadow-lg duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in dark:border-zinc-800 dark:bg-zinc-950",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] relative max-h-[calc(100vh-4rem)] w-[min(calc(100%-1rem),var(--dialog-content-max-width,24rem))] overflow-y-scroll rounded-lg border border-zinc-300 bg-zinc-200 p-6 shadow-lg duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in dark:border-zinc-800 dark:bg-zinc-950",
           className,
         )}
         {...props}
@@ -64,13 +64,7 @@ const DialogHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
-      className,
-    )}
-    {...props}
-  />
+  <div className={cn("mb-6 space-y-1.5 sm:text-left", className)} {...props} />
 )
 DialogHeader.displayName = "DialogHeader"
 

@@ -4,7 +4,14 @@ import { Check, ChevronDown } from "lucide-react"
 
 import { cn, glass } from "../utils/classes"
 
-const Select = SelectPrimitive.Root
+type SelectProps = { size?: "sm" | "md" | "lg" }
+type SelectRootProps = React.ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Root
+>
+
+const Select = ({ children, ...props }: SelectRootProps) => (
+  <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>
+)
 
 const SelectGroup = SelectPrimitive.Group
 
@@ -14,15 +21,19 @@ type SelectTriggerProps = React.ComponentPropsWithoutRef<
   typeof SelectPrimitive.Trigger
 > & {
   showIcon?: boolean
-}
+} & SelectProps
 const SelectTrigger = React.forwardRef<
-  React.ElementRef<typeof SelectPrimitive.Trigger>,
+  React.ComponentRef<typeof SelectPrimitive.Trigger>,
   SelectTriggerProps
->(({ className, children, showIcon = true, ...props }, ref) => (
+>(({ className, children, showIcon = true, size = "md", ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
+    data-size={size}
     className={cn(
-      "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-zinc-100 px-3 py-2 shadow-sm outline-none transition-colors placeholder:text-zinc-500 hover:border-primary-200 hover:bg-primary-50 focus-visible:border-primary-400 focus-visible:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-primary-400 data-[state=open]:bg-primary-50 [&>span]:line-clamp-1",
+      "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-zinc-100 shadow-sm outline-none transition-colors placeholder:text-zinc-500 hover:border-primary-200 hover:bg-primary-50 focus-visible:border-primary-400 focus-visible:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-primary-400 data-[state=open]:bg-primary-50 [&>span]:line-clamp-1",
+      "data-[size=sm]:px-2 data-[size=sm]:py-1 data-[size=sm]:text-sm",
+      "data-[size=md]:px-3 data-[size=md]:py-2",
+      "data-[size=lg]:px-5 data-[size=lg]:py-2 data-[size=lg]:text-lg",
       className,
     )}
     {...props}
@@ -30,7 +41,10 @@ const SelectTrigger = React.forwardRef<
     {children}
     {showIcon && (
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="size-4 opacity-50" />
+        <ChevronDown
+          data-size={size}
+          className="opacity-50 data-[size=lg]:size-6 data-[size=md]:size-4 data-[size=sm]:size-3.5"
+        />
       </SelectPrimitive.Icon>
     )}
   </SelectPrimitive.Trigger>
@@ -74,35 +88,44 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      ref={ref}
-      className={glass(
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        "relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border border-primary-400 text-zinc-900 shadow-md data-[state=closed]:animate-out data-[state=open]:animate-in",
-        position === "popper" &&
-          "data-[side=left]:-translate-x-1 data-[side=top]:-translate-y-1 data-[side=right]:translate-x-1 data-[side=bottom]:translate-y-1",
-        className,
-      )}
-      position={position}
-      {...props}
-    >
-      {/* <SelectScrollUpButton /> */}
-      <SelectPrimitive.Viewport
-        className={cn(
-          "p-1",
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & SelectProps
+>(
+  (
+    { className, children, size = "md", position = "popper", ...props },
+    ref,
+  ) => (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        data-size={size}
+        ref={ref}
+        className={glass(
+          "data-[state=closed]:fade-out-0 group data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          "relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border border-primary-400 text-zinc-900 shadow-md data-[state=closed]:animate-out data-[state=open]:animate-in",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            "data-[side=left]:-translate-x-1 data-[side=top]:-translate-y-1 data-[side=right]:translate-x-1 data-[side=bottom]:translate-y-1",
+          "data-[size=sm]:text-sm",
+          "data-[size=md]:text-base",
+          "data-[size=lg]:text-lg",
+          className,
         )}
+        position={position}
+        {...props}
       >
-        {children}
-      </SelectPrimitive.Viewport>
-      {/* <SelectScrollDownButton /> */}
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-))
+        {/* <SelectScrollUpButton /> */}
+        <SelectPrimitive.Viewport
+          className={cn(
+            "p-1",
+            position === "popper" &&
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        {/* <SelectScrollDownButton /> */}
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  ),
+)
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectLabel = React.forwardRef<
@@ -124,7 +147,10 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center justify-between rounded-sm px-2 py-1.5 outline-none transition-colors hover:bg-primary-50 focus:bg-primary-100 focus:text-zinc-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-pointer select-none items-center justify-between rounded-sm outline-none transition-colors hover:bg-primary-50 focus:bg-primary-100 focus:text-zinc-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "group-data-[size=sm]:px-2 group-data-[size=sm]:py-1",
+      "group-data-[size=md]:px-3 group-data-[size=md]:py-1.5",
+      "group-data-[size=lg]:px-4 group-data-[size=lg]:py-2",
       className,
     )}
     {...props}
