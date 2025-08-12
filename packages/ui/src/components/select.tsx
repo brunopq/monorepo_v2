@@ -30,7 +30,7 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     data-size={size}
     className={cn(
-      "flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-zinc-100 shadow-sm outline-none transition-colors placeholder:text-zinc-500 hover:border-primary-200 hover:bg-primary-50 focus-visible:border-primary-400 focus-visible:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-primary-400 data-[state=open]:bg-primary-50 [&>span]:line-clamp-1",
+      "group flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-zinc-100 shadow-sm outline-none transition-colors placeholder:text-zinc-500 hover:border-primary-200 hover:bg-primary-50 focus-visible:border-primary-400 focus-visible:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-primary-400 data-[state=open]:bg-primary-50 [&>span]:line-clamp-1",
       "data-[size=sm]:px-2 data-[size=sm]:py-1 data-[size=sm]:text-sm",
       "data-[size=md]:px-3 data-[size=md]:py-2",
       "data-[size=lg]:px-5 data-[size=lg]:py-2 data-[size=lg]:text-lg",
@@ -41,10 +41,7 @@ const SelectTrigger = React.forwardRef<
     {children}
     {showIcon && (
       <SelectPrimitive.Icon asChild>
-        <ChevronDown
-          data-size={size}
-          className="opacity-50 data-[size=lg]:size-6 data-[size=md]:size-4 data-[size=sm]:size-3.5"
-        />
+        <ChevronDown className="opacity-50 group-data-[size=lg]:size-6 group-data-[size=md]:size-4 group-data-[size=sm]:size-3.5" />
       </SelectPrimitive.Icon>
     )}
   </SelectPrimitive.Trigger>
