@@ -1,35 +1,32 @@
 import { Button, Dialog, Input, Select } from "iboti-ui"
-import { XIcon } from "lucide-react"
+import { AsteriskIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
-import type { ProcessedFile } from "./types"
+import type { FieldMapping, ProcessedFile } from "./types"
 
 type FieldsMappingModalProps = {
   file: ProcessedFile
+  onUpdateMappings: (mappings: FieldMapping[]) => void
 }
 
-export function FieldsMappingModal({ file }: FieldsMappingModalProps) {
-  const [localMapping, setLocalMapping] = useState<
-    Partial<Record<string, string | undefined>>
-  >(file.mapping)
+export function FieldsMappingModal({
+  file,
+  onUpdateMappings,
+}: FieldsMappingModalProps) {
+  const [localMappings, setLocalMappings] = useState<FieldMapping[]>(
+    file.mappings,
+  )
 
-  const handleAddMapping = (key: string, value: string) => {
-    setLocalMapping((prev) => ({
-      ...prev,
-      [key.trim()]: value,
-    }))
+  const handleAddMapping = (name: string, field: string) => {
+    setLocalMappings((prev) => [...prev, { name, field }])
   }
 
-  const removeMapping = (key: string) => {
-    setLocalMapping((prev) => {
-      const newMapping = { ...prev }
-      delete newMapping[key]
-      return newMapping
-    })
+  const removeMapping = (name: string) => {
+    setLocalMappings((prev) => prev.filter((mapping) => mapping.name !== name))
   }
 
   const saveMappings = () => {
-    file.mapping = localMapping
+    onUpdateMappings(localMappings)
   }
 
   return (
@@ -53,21 +50,23 @@ export function FieldsMappingModal({ file }: FieldsMappingModalProps) {
               Mapeamentos:
             </h3>
 
-            {Object.entries(localMapping).length > 0 ? (
+            {localMappings.length > 0 ? (
               <div className="mb-3 max-h-96 space-y-2 overflow-scroll">
-                {Object.entries(localMapping).map(([key, value]) => (
+                {localMappings.map((m) => (
                   <Mapping
-                    key={key}
-                    mappingKey={key}
-                    value={value}
+                    key={m.name}
+                    mapping={m}
                     fields={file.headers}
                     onValueChange={(newValue) =>
-                      setLocalMapping((prev) => ({
-                        ...prev,
-                        [key]: newValue,
-                      }))
+                      setLocalMappings((prev) =>
+                        prev.map((mapping) =>
+                          mapping.name === m.name
+                            ? { ...mapping, field: newValue }
+                            : mapping,
+                        ),
+                      )
                     }
-                    onRemove={() => removeMapping(key)}
+                    onRemove={() => removeMapping(m.name)}
                   />
                 ))}
               </div>
@@ -121,29 +120,26 @@ function FieldsList({ fields }: FieldsListProps) {
 }
 
 type MappingProps = {
-  mappingKey: string | undefined
-  value: string | undefined
+  mapping: FieldMapping
   fields: string[]
   onValueChange: (value: string) => void
   onRemove: () => void
-  required?: boolean
 }
 
-function Mapping({
-  mappingKey,
-  value,
-  fields,
-  onRemove,
-  onValueChange,
-  required,
-}: MappingProps) {
+function Mapping({ mapping, fields, onRemove, onValueChange }: MappingProps) {
   return (
     <div className="flex items-center gap-2 border-zinc-400 ">
       <span className="font-medium text-sm">
-        {mappingKey}
-        {required && <span className="text-red-800">*</span>}:
+        {mapping.name}
+        {mapping.mandatory && (
+          <AsteriskIcon className="-translate-y-1.5 inline size-3 text-red-800" />
+        )}
+        :
       </span>
-      <Select.Root value={value || ""} onValueChange={(e) => onValueChange(e)}>
+      <Select.Root
+        value={mapping.field || ""}
+        onValueChange={(e) => onValueChange(e)}
+      >
         <Select.Trigger size="sm" className="w-fit">
           <Select.Value placeholder="Selecione uma coluna..." />
         </Select.Trigger>

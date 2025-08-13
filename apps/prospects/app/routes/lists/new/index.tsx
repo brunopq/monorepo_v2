@@ -1,8 +1,8 @@
 import type { Route } from "./+types"
 import { Link, useFetcher } from "react-router"
-import { useRef, useState } from "react"
-import { FileUpIcon, FileIcon, ArrowLeftIcon } from "lucide-react"
-import { Button, Input, toast } from "iboti-ui"
+import { Fragment, useEffect, useRef, useState } from "react"
+import { FileUpIcon, FileIcon, ArrowLeftIcon, ChevronDown } from "lucide-react"
+import { Button, Dialog, Input, toast } from "iboti-ui"
 import { z } from "zod/v4"
 
 import ListService from "~/services/ListService"
@@ -11,13 +11,15 @@ import LeadService from "~/services/LeadService"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
+
 import {
   countLeadsInFile,
   extractLeadsFromFile,
   getFileHeaders,
 } from "./fileUtils"
 import { FieldsMappingModal } from "./FieldsMappingModal"
-import type { ProcessedFile } from "./types"
+import type { FieldMapping, ProcessedFile } from "./types"
+import { defaultFields, requiredFields } from "./constants"
 
 export async function loader({ request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
@@ -83,13 +85,16 @@ export default function NewList({ actionData }: Route.ComponentProps) {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const requiredFields = ["Nome", "Telefone", "CPF"]
 
     const leads: NewDomainLead[] = []
 
     for (const file of files) {
       console.log(file)
-      if (!requiredFields.every((field) => file.mapping[field])) {
+      if (
+        !requiredFields.every((field) =>
+          file.mappings.find((m) => m.name === field && m.field),
+        )
+      ) {
         toast({
           title: `O arquivo "${file.file.name}" deve conter os campos obrigatórios: ${requiredFields.join(
             ", ",
@@ -98,23 +103,23 @@ export default function NewList({ actionData }: Route.ComponentProps) {
         return
       }
 
-      for (const [key, value] of Object.entries(file.mapping)) {
-        if (!value) {
+      for (const { name, field } of file.mappings) {
+        if (!field) {
           toast({
-            title: `O campo "${key}" não está mapeado no arquivo "${file.file.name}". Remova o campo ou mapeie-o corretamente.`,
+            title: `O campo "${name}" não está mapeado no arquivo "${file.file.name}". Remova o campo ou mapeie-o corretamente.`,
           })
           return
         }
 
-        if (!file.headers.includes(value)) {
+        if (!file.headers.includes(field)) {
           toast({
-            title: `O campo "${key}" está mapeado para "${value}", que não existe no arquivo "${file.file.name}".`,
+            title: `O campo "${name}" está mapeado para "${field}", que não existe no arquivo "${file.file.name}".`,
           })
           return
         }
       }
 
-      const result = await extractLeadsFromFile(file.file, file.mapping)
+      const result = await extractLeadsFromFile(file.file, file.mappings)
       console.log(result.leads)
       console.log(result.errors)
 
@@ -150,12 +155,7 @@ export default function NewList({ actionData }: Route.ComponentProps) {
 
   return (
     <div className={maxWidth("pt-4")}>
-      <fetcher.Form
-        method="post"
-        className="space-y-4"
-        encType="multipart/form-data"
-        onSubmit={handleSubmit}
-      >
+      <fetcher.Form method="post" className="space-y-4" onSubmit={handleSubmit}>
         <header className="mb-4 flex items-center gap-4">
           <Button asChild variant="ghost" size="icon">
             <Link to="..">
@@ -167,9 +167,7 @@ export default function NewList({ actionData }: Route.ComponentProps) {
             Nova lista
           </h1>
 
-          <Button className="ml-auto" type="submit">
-            Criar Lista
-          </Button>
+          <CreationDialog name={listName} origin={origin} files={files} />
         </header>
 
         <div className="flex gap-2">
@@ -268,6 +266,17 @@ function FilesInput({
     }
   }
 
+  const generateDefaultMappings = (headers: string[]): FieldMapping[] => {
+    return defaultFields.map((field) => ({
+      name: field,
+      field: headers.find(
+        (header) => header.trim().toLowerCase() === field.trim().toLowerCase(),
+      ),
+      // biome-ignore lint/suspicious/noExplicitAny: typescript gives an error but this is fine
+      mandatory: requiredFields.includes(field as any),
+    }))
+  }
+
   const processFile = async (
     file: File,
   ): Promise<
@@ -285,13 +294,7 @@ function FilesInput({
           file: file,
           leadsCount: leadsCount,
           headers,
-          mapping: {
-            Nome: undefined,
-            Telefone: undefined,
-            CPF: undefined,
-            "Data de nascimento": undefined,
-            Estado: undefined,
-          },
+          mappings: generateDefaultMappings(headers),
         },
       }
     } catch (error) {
@@ -375,8 +378,17 @@ function FilesInput({
         ) : (
           <div className="flex flex-col gap-2">
             {files.map((file) => (
-              <ProcessedFileCard
+              <FileCard
                 key={generateFileKey(file.file)}
+                setFileMappings={(mappings) =>
+                  setFiles((prev) =>
+                    prev.map((f) =>
+                      generateFileKey(f.file) === generateFileKey(file.file)
+                        ? { ...f, mappings }
+                        : f,
+                    ),
+                  )
+                }
                 file={file}
                 onRemoveFile={() => removeFile(generateFileKey(file.file))}
               />
@@ -450,12 +462,13 @@ function FileInputPlaceholder({ hasErrors }: FileInputPlaceholderProps) {
   )
 }
 
-type ProcessedFileCardProps = {
+type FileCardProps = {
   file: ProcessedFile
+  setFileMappings: (mappings: FieldMapping[]) => void
   onRemoveFile: () => void
 }
 
-function ProcessedFileCard({ file, onRemoveFile }: ProcessedFileCardProps) {
+function FileCard({ file, setFileMappings, onRemoveFile }: FileCardProps) {
   return (
     <div className="flex items-center gap-3 rounded border border-zinc-300 bg-zinc-100 p-2 px-4 shadow">
       <FileIcon className="size-6 text-primary-500" />
@@ -467,7 +480,7 @@ function ProcessedFileCard({ file, onRemoveFile }: ProcessedFileCardProps) {
       </div>
 
       <div className="flex flex-col items-end gap-0.5">
-        <FieldsMappingModal file={file} />
+        <FieldsMappingModal file={file} onUpdateMappings={setFileMappings} />
         <Button
           type="button"
           onClick={onRemoveFile}
@@ -478,5 +491,208 @@ function ProcessedFileCard({ file, onRemoveFile }: ProcessedFileCardProps) {
         </Button>
       </div>
     </div>
+  )
+}
+
+type CreationDialogProps = {
+  name?: string
+  origin?: string
+  files: ProcessedFile[]
+}
+
+function canCreate({ name, origin, files }: CreationDialogProps) {
+  return (
+    !!name &&
+    !!origin &&
+    files.length > 0 &&
+    files.every(
+      (file) =>
+        requiredFields.every((f) => file.mappings.some((m) => m.name === f)) &&
+        file.mappings.every((m) => m.field && file.headers.includes(m.field)),
+    )
+  )
+}
+
+function CreationDialog({ files, name, origin }: CreationDialogProps) {
+  const enabled = canCreate({ name, origin, files })
+
+  const [processedFiles, setProcessedFiles] = useState<
+    ({
+      fileName: string
+      totalCount: number
+      mappings: FieldMapping[]
+    } & (
+      | {
+          loaded: true
+          result: Awaited<ReturnType<typeof extractLeadsFromFile>>
+        }
+      | {
+          loaded: false
+        }
+    ))[]
+  >([])
+
+  const hasErrors = processedFiles.some(
+    (f) => f.loaded && f.result.errors.length > 0,
+  )
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    if (!enabled) return
+
+    for (const file of files) {
+      if (!processedFiles.some((f) => f.fileName === file.file.name)) {
+        // add the file in loading state
+        setProcessedFiles((prev) => [
+          ...prev,
+          {
+            mappings: file.mappings,
+            fileName: file.file.name,
+            totalCount: file.leadsCount,
+            loaded: false,
+          },
+        ])
+
+        extractLeadsFromFile(file.file, file.mappings).then((result) => {
+          console.log(result)
+          setProcessedFiles((prev) =>
+            prev.map((f) =>
+              f.fileName === file.file.name
+                ? { ...f, loaded: true, result }
+                : f,
+            ),
+          )
+        })
+      }
+    }
+  }, [files, enabled])
+
+  return (
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <Button disabled={!enabled} className="ml-auto" type="button">
+          Criar Lista
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Content className="[--dialog-content-max-width:_38rem]">
+        <Dialog.Header>
+          <Dialog.Title>Confirmar criação da lista</Dialog.Title>
+        </Dialog.Header>
+
+        <div>
+          <ul>
+            <li>
+              <strong>Nome:</strong> {name}
+            </li>
+            <li>
+              <strong>Origem:</strong> {origin}
+            </li>
+          </ul>
+
+          <p className="mt-4 text-sm text-zinc-600">Arquivos:</p>
+          <ul className="mt-2 space-y-1">
+            {processedFiles.map((file) => (
+              <ProcessedFileCard key={file.fileName} file={file} />
+            ))}
+          </ul>
+        </div>
+
+        <Dialog.Footer>
+          <Dialog.Close asChild>
+            <Button variant="outline">Cancelar</Button>
+          </Dialog.Close>
+
+          <Button type="submit">
+            {hasErrors ? "Ignorar erros e criar" : "Criar"}{" "}
+          </Button>
+        </Dialog.Footer>
+      </Dialog.Content>
+    </Dialog.Root>
+  )
+}
+
+type ProcessedFileCardProps = {
+  file: {
+    fileName: string
+    totalCount: number
+    loaded: boolean
+    result?: Awaited<ReturnType<typeof extractLeadsFromFile>>
+    mappings: FieldMapping[]
+  }
+}
+
+function ProcessedFileCard({ file }: ProcessedFileCardProps) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <li key={file.fileName} className="">
+      <header className="flex items-center justify-between gap-4">
+        <span>
+          {file.fileName}
+
+          {file.loaded ? (
+            <>
+              <span className="ml-2 text-sm text-zinc-600">
+                ({file.result?.leads.length} leads extraídos)
+              </span>
+
+              <span className="ml-2 text-red-800 text-sm">
+                ({file.result?.errors.length} erros encontrados)
+              </span>
+            </>
+          ) : (
+            <span className="ml-2 text-sm text-zinc-500">Carregando...</span>
+          )}
+        </span>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-6 p-1"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          <ChevronDown className={cn("size-5", expanded && "rotate-180")} />
+        </Button>
+      </header>
+
+      {expanded && (
+        <div>
+          <div className="grid w-full grid-cols-[auto_auto] gap-x-4 border border-zinc-300 bg-zinc-100 text-sm text-zinc-600">
+            <span className="col-span-2 grid grid-cols-subgrid bg-primary-50 px-1 font-semibold text-zinc-800">
+              <span>Campo</span>
+              <span>Coluna</span>
+            </span>
+            <hr className="col-span-2 border-zinc-300" />
+            {file.mappings.map((m) => (
+              <span
+                className="col-span-2 grid grid-cols-subgrid px-1"
+                key={m.name}
+              >
+                <span>{m.name}</span>
+                <span>{m.field}</span>
+              </span>
+            ))}
+          </div>
+
+          <ul className="mt-2 max-h-64 space-y-1 overflow-auto border border-zinc-300 bg-zinc-100 pb-4 text-red-900 text-sm">
+            {file.loaded ? (
+              file.result?.errors.map((error) => (
+                <Fragment key={`${file.fileName}-${error.line}`}>
+                  <pre className="w-max px-1">
+                    (Linha {error.line}) {error.message}
+                    <br />
+                    {JSON.stringify(error.row)}
+                  </pre>
+                  <hr className="border-zinc-300 last:hidden" />
+                </Fragment>
+              ))
+            ) : (
+              <li className="text-sm text-zinc-500">Carregando erros...</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </li>
   )
 }

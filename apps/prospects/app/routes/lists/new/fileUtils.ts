@@ -1,6 +1,7 @@
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
 import type { NewDomainLead } from "~/services/LeadService"
+import type { FieldMapping } from "./types"
 
 function countLeadsInCSV(file: File): Promise<number> {
     return new Promise((resolve, reject) => {
@@ -154,13 +155,14 @@ export async function getFileHeaders(file: File): Promise<string[]> {
 
 type ParsingError = {
     message: string;
+    fileName: string;
     line: number;
     row: Record<string, string>;
 }
 
 async function extractLeadsFromCSV(
     file: File,
-    mapping: Partial<Record<string, string>>,
+    mappings: FieldMapping[]
 ): Promise<{ leads: NewDomainLead[], errors: ParsingError[] }> {
     return new Promise((resolve, reject) => {
         const leads: NewDomainLead[] = []
@@ -188,14 +190,15 @@ async function extractLeadsFromCSV(
                     line++
                     const lead: Record<string, string> = {}
 
-                    for (const [key, mappedField] of Object.entries(mapping)) {
-                        if (!mappedField) continue
+                    for (const { name, field } of mappings) {
+                        if (!field) continue
 
                         try {
-                            lead[key] = row[mappedField]
+                            lead[name] = row[field]
                         } catch (error) {
                             errors.push({
-                                message: `Erro ao mapear campo "${mappedField}"`,
+                                message: `Erro ao mapear campo "${name}"`,
+                                fileName: file.name,
                                 line,
                                 row,
                             })
@@ -206,7 +209,8 @@ async function extractLeadsFromCSV(
 
                     if (!isValidLead) {
                         errors.push({
-                            message: "Lead inválido: Nome, Telefone e CPF são obrigatórios.",
+                            message: "Lead inválido: Nome, Telefone ou CPF não estão presentes.",
+                            fileName: file.name,
                             line,
                             row,
                         })
@@ -236,14 +240,14 @@ async function extractLeadsFromCSV(
 
 async function extractLeadsFromExcel(
     file: File,
-    mapping: Partial<Record<string, string>>,
+    mappings: FieldMapping[]
 ): Promise<{ leads: NewDomainLead[], errors: ParsingError[] }> {
     throw new Error("Função não implementada: extractLeadsFromExcel")
 }
 
 export async function extractLeadsFromFile(
     file: File,
-    mapping: Partial<Record<string, string>>,
+    mappings: FieldMapping[]
 ): Promise<{ leads: NewDomainLead[], errors: ParsingError[] }> {
     const fileExtension = file.name
         .toLowerCase()
@@ -251,10 +255,10 @@ export async function extractLeadsFromFile(
 
     switch (fileExtension) {
         case ".csv":
-            return extractLeadsFromCSV(file, mapping)
+            return extractLeadsFromCSV(file, mappings)
         case ".xls":
         case ".xlsx":
-            return extractLeadsFromExcel(file, mapping)
+            return extractLeadsFromExcel(file, mappings)
         default:
             throw new Error("Tipo de arquivo não suportado")
     }
