@@ -3,6 +3,7 @@ export { Input, type InputProps } from "./components/input"
 import * as BaseDialog from "./components/dialog"
 import * as BaseSelect from "./components/select"
 import * as BaseTable from "./components/table"
+import * as BaseTooltip from "./components/tooltip"
 import * as ToastPrimitives from "./components/toast"
 
 export { PieChart } from "./components/charts/pie"
@@ -42,6 +43,13 @@ export const Table = {
   Footer: BaseTable.TableFooter,
 }
 
+export const Tooltip = {
+  Root: BaseTooltip.Tooltip,
+  Trigger: BaseTooltip.TooltipTrigger,
+  Content: BaseTooltip.TooltipContent,
+  Provider: BaseTooltip.TooltipProvider,
+}
+
 export const Toast = {
   Provider: ToastPrimitives.ToastProvider,
   Viewport: ToastPrimitives.ToastViewport,
@@ -54,3 +62,4 @@ export const Toast = {
 export const useToast = ToastPrimitives.useToast
 export const toast = ToastPrimitives.toast
 export const Toaster = ToastPrimitives.Toaster
+

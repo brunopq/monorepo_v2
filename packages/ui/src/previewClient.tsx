@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client"
-import { Select, Button } from "./index"
+import { Select, Button, Tooltip } from "./index"
 
 const domNode = document.getElementById("root")
 // biome-ignore lint/style/noNonNullAssertion: <explanation>
@@ -88,6 +88,28 @@ root.render(
             ))}
           </Select.Content>
         </Select.Root>
+      </div>
+    </div>
+
+    <div className="flex gap-4 border-2 border-dashed p-2">
+      <div className="space-y-4 bg-zinc-200 p-2 text-center">
+        <p className="font-semibold">Tooltip</p>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <Button>Hover me</Button>
+          </Tooltip.Trigger>
+          <Tooltip.Content sideOffset={5}>This is a tooltip!</Tooltip.Content>
+        </Tooltip.Root>
+      </div>
+
+      <div className="space-y-4 bg-zinc-200 p-2 text-center">
+        <p className="font-semibold">Button with tooltip</p>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <Button>Hover me too</Button>
+          </Tooltip.Trigger>
+          <Tooltip.Content sideOffset={5}>Another tooltip!</Tooltip.Content>
+        </Tooltip.Root>
       </div>
     </div>
   </div>,
