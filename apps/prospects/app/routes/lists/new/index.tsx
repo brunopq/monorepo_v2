@@ -1,8 +1,14 @@
 import type { Route } from "./+types"
 import { Link, useFetcher } from "react-router"
 import { Fragment, useEffect, useRef, useState } from "react"
-import { FileUpIcon, FileIcon, ArrowLeftIcon, ChevronDown } from "lucide-react"
-import { Button, Dialog, Input, toast } from "iboti-ui"
+import {
+  FileUpIcon,
+  FileIcon,
+  ArrowLeftIcon,
+  ChevronDown,
+  CircleAlertIcon,
+} from "lucide-react"
+import { Button, Dialog, Input, toast, Tooltip } from "iboti-ui"
 import { z } from "zod/v4"
 
 import ListService from "~/services/ListService"
@@ -515,7 +521,25 @@ function canCreate({ name, origin, files }: CreationDialogProps) {
 
 function CreationDialog({ files, name, origin }: CreationDialogProps) {
   const enabled = canCreate({ name, origin, files })
+  const [dialogOpen, setDialogOpen] = useState(false)
 
+  return (
+    <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog.Trigger asChild>
+        <Button disabled={!enabled} className="ml-auto" type="button">
+          Criar Lista
+        </Button>
+      </Dialog.Trigger>
+      {enabled && dialogOpen && (
+        <CreationDialogContent files={files} name={name} origin={origin} />
+      )}
+    </Dialog.Root>
+  )
+}
+
+// Moving the content and the processing improves performance and
+// automatically recalculates when the files change
+function CreationDialogContent({ files, name, origin }: CreationDialogProps) {
   const [processedFiles, setProcessedFiles] = useState<
     ({
       fileName: string
@@ -538,23 +562,13 @@ function CreationDialog({ files, name, origin }: CreationDialogProps) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    if (!enabled) return
-
     for (const file of files) {
-      if (!processedFiles.some((f) => f.fileName === file.file.name)) {
-        // add the file in loading state
-        setProcessedFiles((prev) => [
-          ...prev,
-          {
-            mappings: file.mappings,
-            fileName: file.file.name,
-            totalCount: file.leadsCount,
-            loaded: false,
-          },
-        ])
+      setProcessedFiles((prev) => {
+        if (prev.some((f) => f.fileName === file.file.name)) {
+          return prev
+        }
 
         extractLeadsFromFile(file.file, file.mappings).then((result) => {
-          console.log(result)
           setProcessedFiles((prev) =>
             prev.map((f) =>
               f.fileName === file.file.name
@@ -563,51 +577,54 @@ function CreationDialog({ files, name, origin }: CreationDialogProps) {
             ),
           )
         })
-      }
+
+        return [
+          ...prev,
+          {
+            mappings: file.mappings,
+            fileName: file.file.name,
+            totalCount: file.leadsCount,
+            loaded: false,
+          },
+        ]
+      })
     }
-  }, [files, enabled])
+  }, [])
 
   return (
-    <Dialog.Root>
-      <Dialog.Trigger asChild>
-        <Button disabled={!enabled} className="ml-auto" type="button">
-          Criar Lista
+    <Dialog.Content className="[--dialog-content-max-width:_38rem]">
+      <Dialog.Header>
+        <Dialog.Title>Confirmar criação da lista</Dialog.Title>
+      </Dialog.Header>
+
+      <div>
+        <ul>
+          <li>
+            <strong>Nome:</strong> {name}
+          </li>
+          <li>
+            <strong>Origem:</strong> {origin}
+          </li>
+        </ul>
+
+        <p className="mt-4 text-sm text-zinc-600">Arquivos:</p>
+        <ul className="mt-2 space-y-1">
+          {processedFiles.map((file) => (
+            <ProcessedFileCard key={file.fileName} file={file} />
+          ))}
+        </ul>
+      </div>
+
+      <Dialog.Footer>
+        <Dialog.Close asChild>
+          <Button variant="outline">Cancelar</Button>
+        </Dialog.Close>
+
+        <Button type="submit">
+          {hasErrors ? "Ignorar erros e criar" : "Criar"}
         </Button>
-      </Dialog.Trigger>
-      <Dialog.Content className="[--dialog-content-max-width:_38rem]">
-        <Dialog.Header>
-          <Dialog.Title>Confirmar criação da lista</Dialog.Title>
-        </Dialog.Header>
-
-        <div>
-          <ul>
-            <li>
-              <strong>Nome:</strong> {name}
-            </li>
-            <li>
-              <strong>Origem:</strong> {origin}
-            </li>
-          </ul>
-
-          <p className="mt-4 text-sm text-zinc-600">Arquivos:</p>
-          <ul className="mt-2 space-y-1">
-            {processedFiles.map((file) => (
-              <ProcessedFileCard key={file.fileName} file={file} />
-            ))}
-          </ul>
-        </div>
-
-        <Dialog.Footer>
-          <Dialog.Close asChild>
-            <Button variant="outline">Cancelar</Button>
-          </Dialog.Close>
-
-          <Button type="submit">
-            {hasErrors ? "Ignorar erros e criar" : "Criar"}{" "}
-          </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }
 
@@ -658,6 +675,7 @@ function ProcessedFileCard({ file }: ProcessedFileCardProps) {
 
       {expanded && (
         <div>
+          {/* Mappings Table */}
           <div className="grid w-full grid-cols-[auto_auto] gap-x-4 border border-zinc-300 bg-zinc-100 text-sm text-zinc-600">
             <span className="col-span-2 grid grid-cols-subgrid bg-primary-50 px-1 font-semibold text-zinc-800">
               <span>Campo</span>
@@ -675,24 +693,78 @@ function ProcessedFileCard({ file }: ProcessedFileCardProps) {
             ))}
           </div>
 
-          <ul className="mt-2 max-h-64 space-y-1 overflow-auto border border-zinc-300 bg-zinc-100 pb-4 text-red-900 text-sm">
-            {file.loaded ? (
-              file.result?.errors.map((error) => (
-                <Fragment key={`${file.fileName}-${error.line}`}>
-                  <pre className="w-max px-1">
-                    (Linha {error.line}) {error.message}
-                    <br />
-                    {JSON.stringify(error.row)}
-                  </pre>
-                  <hr className="border-zinc-300 last:hidden" />
-                </Fragment>
-              ))
+          <div className="mt-2">
+            {file.result ? (
+              <ErrorsTable
+                errors={file.result.errors}
+                fileName={file.fileName}
+              />
             ) : (
-              <li className="text-sm text-zinc-500">Carregando erros...</li>
+              <div className="text-sm text-zinc-500">Carregando erros...</div>
             )}
-          </ul>
+          </div>
         </div>
       )}
     </li>
+  )
+}
+
+type ErrorsTableProps = {
+  errors: Array<{
+    line: number
+    message: string
+    row: Record<string, string>
+  }>
+  fileName: string
+}
+
+function ErrorsTable({ errors, fileName }: ErrorsTableProps) {
+  if (errors.length === 0) {
+    return <div className="text-sm text-zinc-500">Nenhum erro encontrado</div>
+  }
+
+  const allColumns = Array.from(
+    new Set(errors.flatMap((error) => Object.keys(error.row))),
+  ).sort()
+
+  const columns = ["Linha", "Erro", ...allColumns]
+
+  return (
+    <div
+      className="relative grid max-h-64 overflow-auto border border-zinc-300 bg-zinc-100 text-red-900 text-sm *:border-zinc-300 *:border-b *:px-2 *:py-1"
+      style={{
+        gridTemplateColumns: `repeat(${columns.length}, max-content)`,
+      }}
+    >
+      {/* Header */}
+      {columns.map((column) => (
+        <span
+          key={column}
+          className="sticky top-0 whitespace-nowrap bg-red-100 font-semibold text-red-950"
+        >
+          {column}
+        </span>
+      ))}
+
+      {/* Error rows */}
+      {errors.map((error, index) => (
+        <Fragment key={`${fileName}-${error.line}-${index}`}>
+          <span className="flex items-center justify-center">{error.line}</span>
+
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <span className="flex cursor-pointer items-center justify-center">
+                <CircleAlertIcon className="size-4" />
+              </span>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{error.message}</Tooltip.Content>
+          </Tooltip.Root>
+
+          {allColumns.map((column) => (
+            <span key={column}>{error.row[column] || "-"}</span>
+          ))}
+        </Fragment>
+      ))}
+    </div>
   )
 }
