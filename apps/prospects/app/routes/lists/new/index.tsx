@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   ChevronDown,
   CircleAlertIcon,
+  CornerDownRightIcon,
 } from "lucide-react"
 import { Button, Dialog, Input, toast, Tooltip } from "iboti-ui"
 import { z } from "zod/v4"
@@ -57,13 +58,11 @@ export async function action({ request }: Route.ActionArgs) {
   const { success, data, error } = newListSchema.safeParse(body)
 
   if (!success) {
-    return new Response(
-      JSON.stringify({
-        error: "Dados inválidos",
-        issues: error.issues,
-      }),
-      { status: 400 },
-    )
+    return {
+      ok: false as const,
+      error: "Dados inválidos",
+      issues: error.issues,
+    }
   }
 
   const list = await ListService.create({
@@ -76,11 +75,15 @@ export async function action({ request }: Route.ActionArgs) {
   const leads = await LeadService.createMany(
     data.leads.map((l) => ({ ...l, listId: list.id })),
   )
+
+  return {
+    ok: true as const,
+    list: list,
+    createdLeads: leads.length,
+  }
 }
 
 export default function NewList({ actionData }: Route.ComponentProps) {
-  const fetcher = useFetcher()
-
   const [listName, setListName] = useState("")
   const [origin, setOrigin] = useState("")
   const [files, setFiles] = useState<ProcessedFile[]>([])
@@ -89,127 +92,53 @@ export default function NewList({ actionData }: Route.ComponentProps) {
     setListName(event.target.value)
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const leads: NewDomainLead[] = []
-
-    for (const file of files) {
-      console.log(file)
-      if (
-        !requiredFields.every((field) =>
-          file.mappings.find((m) => m.name === field && m.field),
-        )
-      ) {
-        toast({
-          title: `O arquivo "${file.file.name}" deve conter os campos obrigatórios: ${requiredFields.join(
-            ", ",
-          )}`,
-        })
-        return
-      }
-
-      for (const { name, field } of file.mappings) {
-        if (!field) {
-          toast({
-            title: `O campo "${name}" não está mapeado no arquivo "${file.file.name}". Remova o campo ou mapeie-o corretamente.`,
-          })
-          return
-        }
-
-        if (!file.headers.includes(field)) {
-          toast({
-            title: `O campo "${name}" está mapeado para "${field}", que não existe no arquivo "${file.file.name}".`,
-          })
-          return
-        }
-      }
-
-      const result = await extractLeadsFromFile(file.file, file.mappings)
-      console.log(result.leads)
-      console.log(result.errors)
-
-      if (result.errors.length > 0) {
-        toast({
-          title: `${result.errors.length} erros ao processar o arquivo "${file.file.name}"`,
-          description: result.errors
-            .map((e) => `Linha ${e.line}: ${e.message}`)
-            .join("\n"),
-        })
-        // TODO: "você deseja continuar mesmo assim?"
-        // For now, just return and don't submit the form
-        return
-      }
-
-      leads.push(...result.leads)
-    }
-
-    const payload = {
-      name: listName,
-      origin: origin,
-      leads: leads.map((l) => ({
-        ...l,
-      })),
-    }
-
-    console.log(payload)
-    fetcher.submit(payload, {
-      encType: "application/json",
-      method: "post",
-    })
-  }
-
   return (
-    <div className={maxWidth("pt-4")}>
-      <fetcher.Form method="post" className="space-y-4" onSubmit={handleSubmit}>
-        <header className="mb-4 flex items-center gap-4">
-          <Button asChild variant="ghost" size="icon">
-            <Link to="..">
-              <ArrowLeftIcon />
-            </Link>
-          </Button>
+    <div className={maxWidth("space-y-4 pt-4")}>
+      <header className="mb-4 flex items-center gap-4">
+        <Button asChild variant="ghost" size="icon">
+          <Link to="..">
+            <ArrowLeftIcon />
+          </Link>
+        </Button>
 
-          <h1 className="font-semibold text-2xl text-primary-700">
-            Nova lista
-          </h1>
+        <h1 className="font-semibold text-2xl text-primary-700">Nova lista</h1>
 
-          <CreationDialog name={listName} origin={origin} files={files} />
-        </header>
+        <CreationDialog name={listName} origin={origin} files={files} />
+      </header>
 
-        <div className="flex gap-2">
-          <label className="flex-1 font-medium text-sm text-zinc-600">
-            Nome da lista
-            <Input
-              type="text"
-              id="name"
-              name="name"
-              value={listName}
-              onChange={handleNameChange}
-              placeholder="Ex: Demitidos 2025 Vivo"
-              required
-            />
-          </label>
-          <label className="flex-1 font-medium text-sm text-zinc-600">
-            Origem
-            <Input
-              type="text"
-              id="origin"
-              name="origin"
-              placeholder="Ex: LinkedIn, Site, etc."
-              value={origin}
-              onChange={(e) => setOrigin(e.target.value)}
-              required
-            />
-          </label>
-        </div>
+      <div className="flex gap-2">
+        <label className="flex-1 font-medium text-sm text-zinc-600">
+          Nome da lista
+          <Input
+            type="text"
+            id="name"
+            name="name"
+            value={listName}
+            onChange={handleNameChange}
+            placeholder="Ex: Demitidos 2025 Vivo"
+            required
+          />
+        </label>
+        <label className="flex-1 font-medium text-sm text-zinc-600">
+          Origem
+          <Input
+            type="text"
+            id="origin"
+            name="origin"
+            placeholder="Ex: LinkedIn, Site, etc."
+            value={origin}
+            onChange={(e) => setOrigin(e.target.value)}
+            required
+          />
+        </label>
+      </div>
 
-        <FilesInput
-          files={files}
-          setFiles={setFiles}
-          listName={listName}
-          setListName={setListName}
-        />
-      </fetcher.Form>
+      <FilesInput
+        files={files}
+        setFiles={setFiles}
+        listName={listName}
+        setListName={setListName}
+      />
     </div>
   )
 }
@@ -506,40 +435,120 @@ type CreationDialogProps = {
   files: ProcessedFile[]
 }
 
-function canCreate({ name, origin, files }: CreationDialogProps) {
-  return (
-    !!name &&
-    !!origin &&
-    files.length > 0 &&
-    files.every(
-      (file) =>
-        requiredFields.every((f) => file.mappings.some((m) => m.name === f)) &&
-        file.mappings.every((m) => m.field && file.headers.includes(m.field)),
-    )
+function canCreate({
+  name,
+  origin,
+  files,
+}: CreationDialogProps):
+  | { ok: true; reason?: never }
+  | { ok: false; reason: string } {
+  if (!name) {
+    return { ok: false, reason: "Nome da lista não deve ser vazio" }
+  }
+
+  if (!origin) {
+    return { ok: false, reason: "Origem da lista não deve ser vazia" }
+  }
+
+  if (files.length === 0) {
+    return { ok: false, reason: "Nenhum arquivo adicionado" }
+  }
+
+  const fileWithNoLeads = files.find((f) => f.leadsCount === 0)
+
+  if (fileWithNoLeads) {
+    return {
+      ok: false,
+      reason: `O arquivo "${fileWithNoLeads.file.name}" não contém leads`,
+    }
+  }
+
+  const fileWithoutRequiredFields = files.find(
+    (f) =>
+      !requiredFields.every((field) =>
+        f.mappings.some((m) => m.name === field && m.field),
+      ),
   )
+
+  if (fileWithoutRequiredFields) {
+    return {
+      ok: false,
+      reason: `O arquivo "${fileWithoutRequiredFields.file.name}" deve conter os campos obrigatórios: ${requiredFields.join(
+        ", ",
+      )}`,
+    }
+  }
+
+  const fileWithEmptyMappings = files.find((f) =>
+    f.mappings.some((m) => !m.field),
+  )
+
+  if (fileWithEmptyMappings) {
+    return {
+      ok: false,
+      reason: `O arquivo "${fileWithEmptyMappings.file.name}" contém mapeamentos vazios.`,
+    }
+  }
+
+  const fileWithInvalidMappings = files.find((f) =>
+    f.mappings.some(
+      // biome-ignore lint/style/noNonNullAssertion: was verified in the previous checks
+      (m) => !f.headers.includes(m.field!),
+    ),
+  )
+
+  if (fileWithInvalidMappings) {
+    return {
+      ok: false,
+      reason: `O arquivo "${fileWithInvalidMappings.file.name}" contém mapeamentos para colunas que não existem.`,
+    }
+  }
+
+  return { ok: true }
 }
 
 function CreationDialog({ files, name, origin }: CreationDialogProps) {
-  const enabled = canCreate({ name, origin, files })
+  const { ok, reason } = canCreate({ name, origin, files })
   const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-      <Dialog.Trigger asChild>
-        <Button disabled={!enabled} className="ml-auto" type="button">
-          Criar Lista
-        </Button>
-      </Dialog.Trigger>
-      {enabled && dialogOpen && (
-        <CreationDialogContent files={files} name={name} origin={origin} />
+      <Tooltip.Root>
+        <Dialog.Trigger asChild>
+          <Tooltip.Trigger className="ml-auto" disabled={false}>
+            <Button disabled={!ok} type="button">
+              Criar Lista
+            </Button>
+          </Tooltip.Trigger>
+        </Dialog.Trigger>
+        {!ok && <Tooltip.Content>{reason}</Tooltip.Content>}
+      </Tooltip.Root>
+      {/* Dialog content */}
+      {ok && dialogOpen && (
+        <CreationDialogContent
+          files={files}
+          name={name}
+          origin={origin}
+          onSuccess={() => setDialogOpen(false)}
+        />
       )}
     </Dialog.Root>
   )
 }
 
+
+type CreationDialogContentProps = CreationDialogProps & {
+  onSuccess: () => void
+}
 // Moving the content and the processing improves performance and
 // automatically recalculates when the files change
-function CreationDialogContent({ files, name, origin }: CreationDialogProps) {
+function CreationDialogContent({
+  files,
+  name,
+  origin,
+  onSuccess,
+}: CreationDialogContentProps) {
+  const fetcher = useFetcher<typeof action>()
   const [processedFiles, setProcessedFiles] = useState<
     ({
       fileName: string
@@ -559,6 +568,31 @@ function CreationDialogContent({ files, name, origin }: CreationDialogProps) {
   const hasErrors = processedFiles.some(
     (f) => f.loaded && f.result.errors.length > 0,
   )
+
+  const canSubmit = processedFiles.every((f) => f.loaded)
+
+  const handleSubmit = async (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+
+    // the !name and !origin checks are redundant here, but
+    // make typescript happy on the fetcher.submit call
+    if (!canSubmit || !name || !origin) {
+      return
+    }
+
+    const leads: NewDomainLead[] = processedFiles.flatMap((f) => f.result.leads)
+
+    const payload = {
+      name,
+      origin,
+      leads,
+    }
+
+    fetcher.submit(payload, {
+      encType: "application/json",
+      method: "post",
+    })
+  }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
@@ -591,6 +625,22 @@ function CreationDialogContent({ files, name, origin }: CreationDialogProps) {
     }
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    if (!fetcher.data) {
+      return
+    }
+
+    if (fetcher.data.ok) {
+      toast({
+        title: "Lista criada com sucesso!",
+        description: `Foram criados ${fetcher.data.createdLeads} leads na lista "${fetcher.data.list.name}".`,
+      })
+      setProcessedFiles([])
+      onSuccess()
+    }
+  }, [fetcher.data])
+
   return (
     <Dialog.Content className="[--dialog-content-max-width:_38rem]">
       <Dialog.Header>
@@ -620,7 +670,7 @@ function CreationDialogContent({ files, name, origin }: CreationDialogProps) {
           <Button variant="outline">Cancelar</Button>
         </Dialog.Close>
 
-        <Button type="submit">
+        <Button onClick={handleSubmit} type="submit">
           {hasErrors ? "Ignorar erros e criar" : "Criar"}
         </Button>
       </Dialog.Footer>
@@ -698,6 +748,7 @@ function ProcessedFileCard({ file }: ProcessedFileCardProps) {
               <ErrorsTable
                 errors={file.result.errors}
                 fileName={file.fileName}
+                mappings={file.mappings}
               />
             ) : (
               <div className="text-sm text-zinc-500">Carregando erros...</div>
@@ -716,9 +767,10 @@ type ErrorsTableProps = {
     row: Record<string, string>
   }>
   fileName: string
+  mappings: FieldMapping[]
 }
 
-function ErrorsTable({ errors, fileName }: ErrorsTableProps) {
+function ErrorsTable({ errors, fileName, mappings }: ErrorsTableProps) {
   if (errors.length === 0) {
     return <div className="text-sm text-zinc-500">Nenhum erro encontrado</div>
   }
@@ -727,7 +779,14 @@ function ErrorsTable({ errors, fileName }: ErrorsTableProps) {
     new Set(errors.flatMap((error) => Object.keys(error.row))),
   ).sort()
 
-  const columns = ["Linha", "Erro", ...allColumns]
+  const columns: { name: string; mapping?: string | undefined }[] = [
+    { name: "Linha" },
+    { name: "Erro" },
+    ...allColumns.map((c) => ({
+      name: c,
+      mapping: mappings.find((m) => m.field === c)?.name || undefined,
+    })),
+  ]
 
   return (
     <div
@@ -737,12 +796,17 @@ function ErrorsTable({ errors, fileName }: ErrorsTableProps) {
       }}
     >
       {/* Header */}
-      {columns.map((column) => (
+      {columns.map(({ name, mapping }) => (
         <span
-          key={column}
+          key={name}
           className="sticky top-0 whitespace-nowrap bg-red-100 font-semibold text-red-950"
         >
-          {column}
+          {name}
+          {mapping && (
+            <span className="-mt-1 block text-xs ">
+              <CornerDownRightIcon className="inline size-4" />({mapping})
+            </span>
+          )}
         </span>
       ))}
 
