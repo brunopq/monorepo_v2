@@ -112,7 +112,7 @@ export default function Id({ loaderData }: Route.ComponentProps) {
 
         <span className="ml-auto flex flex-col gap-1">
           <Button
-            className="inline-flex gap-2"
+            icon="right"
             variant="outline"
             size="sm"
             type="button"
@@ -124,12 +124,7 @@ export default function Id({ loaderData }: Route.ComponentProps) {
             </Link>
           </Button>
 
-          <Button
-            className="inline-flex gap-2"
-            variant="destructive"
-            size="sm"
-            type="button"
-          >
+          <Button icon="right" variant="destructive" size="sm" type="button">
             Excluir
             <Trash2Icon className="size-4" />
           </Button>
@@ -187,9 +182,21 @@ type SubListCardProps = {
 function SubListCard({ subList }: SubListCardProps) {
   return (
     <div key={subList.id} className="border-primary-500 border-l-[3px] pl-3">
-      <header className="flex items-center gap-2">
-        <h3 className="font-semibold text-lg text-primary-800">Listinha</h3>
-        <SubListStatePill state={subList.state} />
+      <header className="flex items-center justify-between">
+        <span className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg text-primary-800">Listinha</h3>
+          <SubListStatePill state={subList.state} />
+        </span>
+
+        <Form
+          action={`/listinhas/${subList.id}`}
+          navigate={false}
+          method="DELETE"
+        >
+          <Button variant="ghost" size="sm" icon="right">
+            Excluir <Trash2Icon className="size-4" />
+          </Button>
+        </Form>
       </header>
 
       <label className="text-sm">
@@ -231,11 +238,11 @@ function SubListAsigneeSelect({
 
   return (
     <Select.Root defaultValue={assigneeId} onValueChange={handleValueChange}>
-      <Select.Trigger className="inline-flex w-fit px-3 py-1 text-sm">
+      <Select.Trigger className="inline-flex w-fit" size="sm">
         <Select.Value placeholder="Atribuir a um vendedor" />
       </Select.Trigger>
 
-      <Select.Content>
+      <Select.Content size="sm">
         {usersFetcher.data?.users.map((assignee) => (
           <Select.Item
             key={assignee.id}

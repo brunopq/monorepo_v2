@@ -1,13 +1,12 @@
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { z } from "zod/v4"
 
-import { interactionStatuses } from '../constants/interactions'
+import { interactionStatuses } from "../constants/interactions"
 
 import { db } from "~/db"
 import { leadInteractions, leads, subLists } from "~/db/schema"
 
 import type { InteractionStatuses } from "./InteractionService"
-
 
 export const subListStates = [
     "new",
@@ -23,6 +22,12 @@ export type SubListState = (typeof subListStates)[number]
 export type DbSubList = typeof subLists.$inferSelect
 
 class SubListService {
+    async getById(id: string) {
+        return await db.query.subLists.findFirst({
+            where: (subLists, { eq }) => eq(subLists.id, id),
+        })
+    }
+
     // TODO: optimize the aggregation step, ideally make one query per method
     async getForList(listId: string) {
         const sls = await db.query.subLists.findMany({
@@ -59,18 +64,18 @@ class SubListService {
                 const [{ contactedLeadsCount, leadsCount }] = await db
                     .select({
                         leadsCount: sql`count(distinct ${leads.id}) as leads_count`,
-                        contactedLeadsCount: sql`count(distinct ${leadInteractions.leadId}) as contacted_leads_count`
+                        contactedLeadsCount: sql`count(distinct ${leadInteractions.leadId}) as contacted_leads_count`,
                     })
                     .from(leads)
                     .leftJoin(leadInteractions, eq(leads.id, leadInteractions.leadId))
                     .where(eq(leads.subListId, sl.id))
 
-
-                const ranked = db.$with('ranked_interactions').as(
-                    db.select({
-                        lead_id: leads.id,
-                        status: leadInteractions.status,
-                        status_rank: sql`CASE ${leadInteractions.status}
+                const ranked = db.$with("ranked_interactions").as(
+                    db
+                        .select({
+                            lead_id: leads.id,
+                            status: leadInteractions.status,
+                            status_rank: sql`CASE ${leadInteractions.status}
                             WHEN 'converted' THEN 1
                             WHEN 'interested' THEN 2
                             WHEN 'waiting_response' THEN 3
@@ -79,8 +84,8 @@ class SubListService {
                             WHEN 'no_interest' THEN 6
                             WHEN 'not_reachable' THEN 7
                             WHEN 'lost' THEN 8
-                            ELSE 999 END`.as('status_rank'),
-                        rn: sql`ROW_NUMBER() OVER (PARTITION BY ${leads.id} ORDER BY
+                            ELSE 999 END`.as("status_rank"),
+                            rn: sql`ROW_NUMBER() OVER (PARTITION BY ${leads.id} ORDER BY
                             CASE ${leadInteractions.status}
                                 WHEN 'converted' THEN 1
                                 WHEN 'interested' THEN 2
@@ -91,12 +96,12 @@ class SubListService {
                                 WHEN 'not_reachable' THEN 7
                                 WHEN 'lost' THEN 8
                                 ELSE 999 END
-                            )`.as('rn'),
-                    })
+                            )`.as("rn"),
+                        })
                         .from(leads)
                         .leftJoin(leadInteractions, eq(leads.id, leadInteractions.leadId))
-                        .where(eq(leads.subListId, sl.id))
-                );
+                        .where(eq(leads.subListId, sl.id)),
+                )
 
                 const result = await db
                     .with(ranked)
@@ -114,14 +119,13 @@ class SubListService {
                 const record = Object.fromEntries(
                     interactionStatuses.map((status) => [
                         status,
-                        Number(result.find((r) => r.status === status)?.lead_count || 0)
+                        Number(result.find((r) => r.status === status)?.lead_count || 0),
                     ]),
                 ) as Record<InteractionStatuses, number>
 
                 return { ...sl, leadsCount, contactedLeadsCount, record }
             }),
         )
-
 
         return slsWithCounts
     }
@@ -166,6 +170,32 @@ class SubListService {
             .returning()
 
         return updatedSubList[0]
+    }
+
+    async delete(id: string) {
+        const subList = await this.getById(id)
+
+        if (!subList) {
+            throw new Error(`SubList with id ${id} not found`)
+        }
+
+        if (subList.state !== "new") {
+            throw new Error(
+                `SubList with id ${id} cannot be deleted because it is not in the 'new' state`,
+            )
+        }
+
+        await db
+            .update(leads)
+            .set({ subListId: null })
+            .where(eq(leads.subListId, id))
+
+        const deletedSubList = await db
+            .delete(subLists)
+            .where(eq(subLists.id, id))
+            .returning()
+
+        return deletedSubList[0]
     }
 }
 

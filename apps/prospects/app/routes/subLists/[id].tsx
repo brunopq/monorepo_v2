@@ -84,6 +84,18 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
       }
     }
   }
+  if (request.method === "DELETE") {
+    try {
+      await SubListService.delete(params.id)
+      return { success: true }
+    } catch (error) {
+      console.error("Failed to delete sublist:", error)
+      return {
+        error: true,
+        message: "Failed to delete sublist",
+      }
+    }
+  }
 }
 
 export default function SubListRoute({ loaderData }: Route.ComponentProps) {
