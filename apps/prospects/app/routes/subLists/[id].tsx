@@ -23,7 +23,11 @@ import {
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
 
-import SubListService from "~/services/SubListService"
+import SubListService, {
+  subListStatesSchema,
+  type DbSubList,
+  type SubListState,
+} from "~/services/SubListService"
 import type { DomainInteraction } from "~/services/InteractionService"
 import type {
   DomainLead,
@@ -47,27 +51,36 @@ export const loader = async ({ request, params }: Route.LoaderArgs) => {
 }
 
 export const action = async ({ request, params }: Route.ActionArgs) => {
-  await getUserOrRedirect(request)
+  const user = await getUserOrRedirect(request)
 
   if (request.method === "PATCH") {
     const formData = await request.formData()
     const assigneeId = formData.get("assigneeId")?.toString()
-
-    if (!assigneeId) {
-      return {
-        error: true,
-        message: "Assignee ID is required",
-      }
-    }
+    const subListStatus = subListStatesSchema.safeParse(formData.get("status"))
 
     try {
-      const subList = await SubListService.assign(params.id, assigneeId)
+      let subList: DbSubList
+
+      if (assigneeId && user.role === "ADMIN") {
+        subList = await SubListService.assign(params.id, assigneeId)
+      } else if (subListStatus.success) {
+        subList = await SubListService.updateStatus(
+          params.id,
+          subListStatus.data,
+        )
+      } else {
+        return {
+          error: true,
+          message: "invalid data",
+        }
+      }
+
       return { subList }
     } catch (error) {
-      console.error("Failed to assign sublist:", error)
+      console.error("Failed to update sublist:", error)
       return {
         error: true,
-        message: "Failed to assign sublist",
+        message: "Failed to update sublist",
       }
     }
   }
@@ -76,24 +89,74 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
 export default function SubListRoute({ loaderData }: Route.ComponentProps) {
   const { user, subList } = loaderData
 
+  const canStart = subList.state === "new"
+  const canFinnish =
+    subList.state === "in_progress" &&
+    subList.leads.every((l) => l.interactions.length > 0)
+  const canReopen = subList.state === "completed"
+  
+
   return (
     <div className={maxWidth("py-4")}>
-      <header className="mb-4 flex items-start gap-4 border-zinc-400 border-b border-dotted pb-2">
-        <Button asChild variant="ghost" size="icon">
-          <Link to="..">
-            <ArrowLeftIcon />
-          </Link>
-        </Button>
-        <div className="mt-1">
-          <span className="inline-flex items-center gap-2">
-            <h1 className="font-semibold text-2xl text-primary-800">
-              Listinha
-            </h1>
+      <header className="mb-4 flex items-center justify-between gap-4 border-zinc-400 border-b border-dotted pb-2">
+        <div className="flex items-start gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link to="..">
+              <ArrowLeftIcon />
+            </Link>
+          </Button>
+          <div className="mt-1">
+            <span className="inline-flex items-center gap-2">
+              <h1 className="font-semibold text-2xl text-primary-800">
+                Listinha
+              </h1>
 
-            <SubListStatusPill status={subList.state} />
-          </span>
-          <p>Atribuído a: {subList.assignee?.name || "Não atribuída"}</p>
-          <p>Leads: {subList.leadsCount}</p>
+              <SubListStatusPill status={subList.state} />
+            </span>
+            <p>Atribuído a: {subList.assignee?.name || "Não atribuída"}</p>
+            <p>Leads: {subList.leadsCount}</p>
+          </div>
+        </div>
+
+        <div>
+          {canStart && (
+            <Form method="patch" className="inline-flex items-center">
+              <Button
+                name="status"
+                value={"in_progress" satisfies SubListState}
+                type="submit"
+                variant="secondary"
+              >
+                Inciar
+              </Button>
+            </Form>
+          )}
+
+          {canReopen && (
+            <Form method="patch" className="inline-flex items-center">
+              <Button
+                name="status"
+                value={"in_progress" satisfies SubListState}
+                type="submit"
+                variant="ghost"
+              >
+                Reabrir
+              </Button>
+            </Form>
+          )}
+
+          {canFinnish && (
+            <Form method="patch" className="inline-flex items-center">
+              <Button
+                name="status"
+                value={"completed" satisfies SubListState}
+                type="submit"
+                variant="secondary"
+              >
+                Finalizar
+              </Button>
+            </Form>
+          )}
         </div>
       </header>
 
@@ -114,6 +177,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
             {subList.leads.map((lead) => (
               <LeadRow
                 key={lead.id}
+                listState={subList.state}
                 lead={{
                   ...lead,
                   extra: lead.extraInfo as unknown as Record<string, string>,
@@ -133,6 +197,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 
 type LeadRowProps = {
   lead: DomainLeadWithInteractions
+  listState: SubListState
 }
 
 const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
@@ -181,11 +246,17 @@ const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
   }
 }
 
-function LeadRow({ lead }: LeadRowProps) {
+function LeadRow({ lead, listState }: LeadRowProps) {
+  const isActive = listState === "in_progress"
+
   const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
-  const handleToggle = () => setOpen(!open)
+  const handleToggle = () => {
+    if (isActive) {
+      setOpen(!open)
+    }
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -208,6 +279,7 @@ function LeadRow({ lead }: LeadRowProps) {
         aria-expanded={open}
         className={cn(
           "cursor-pointer transition-colors focus:outline-none",
+          !isActive && "cursor-default opacity-80",
           leadRowStyles,
         )}
       >

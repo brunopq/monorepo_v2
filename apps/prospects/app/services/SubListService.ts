@@ -1,9 +1,13 @@
 import { eq, sql } from "drizzle-orm"
+import { z } from "zod/v4"
+
+import { interactionStatuses } from '../constants/interactions'
 
 import { db } from "~/db"
 import { leadInteractions, leads, subLists } from "~/db/schema"
+
 import type { InteractionStatuses } from "./InteractionService"
-import { interactionStatuses } from '../constants/interactions'
+
 
 export const subListStates = [
     "new",
@@ -12,7 +16,11 @@ export const subListStates = [
     "canceled",
 ] as const
 
+export const subListStatesSchema = z.enum(subListStates)
+
 export type SubListState = (typeof subListStates)[number]
+
+export type DbSubList = typeof subLists.$inferSelect
 
 class SubListService {
     // TODO: optimize the aggregation step, ideally make one query per method
@@ -144,6 +152,16 @@ class SubListService {
         const updatedSubList = await db
             .update(subLists)
             .set({ assigneeId })
+            .where(eq(subLists.id, id))
+            .returning()
+
+        return updatedSubList[0]
+    }
+
+    async updateStatus(id: string, status: SubListState) {
+        const updatedSubList = await db
+            .update(subLists)
+            .set({ state: status })
             .where(eq(subLists.id, id))
             .returning()
 
