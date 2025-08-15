@@ -70,16 +70,20 @@ class ListService {
 
     async makeSubLists(
         listId: string,
-        sl: { leadsCount: number; assigneeId?: string }[],
+        sl: { leadsCount: number; assigneeId?: string | null }[],
     ) {
+        console.log("Making sublists", { listId, sl })
         await db.transaction(async (t) => {
             for (const sublist of sl) {
+                console.log("Creating sublist", sublist.assigneeId)
                 const [createdSl] = await t.insert(subLists)
                     .values({
                         parentListId: listId,
                         assigneeId: sublist.assigneeId,
                         state: "new" as const,
                     }).returning()
+
+                console.log("Created sublist", createdSl.assigneeId)
 
                 const leadsToAssign = await t
                     .select({ id: leads.id })

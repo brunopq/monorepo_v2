@@ -8,8 +8,9 @@ import {
   Trash2Icon,
   PlusIcon,
 } from "lucide-react"
-import { Button, Dialog, Input, Select } from "iboti-ui"
+import { Button, Dialog, Input, Select, Tooltip } from "iboti-ui"
 import { useEffect, useState } from "react"
+import { z } from "zod/v4"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
@@ -32,35 +33,29 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   return { list, subLists }
 }
 
+
+const subListsSchema = z.array(
+  z.object({
+    leadsCount: z.number(),
+    assigneeId: z.string().nullable(),
+  }),
+)
+
 export async function action({ request, params }: Route.ActionArgs) {
   await getUserOrRedirect(request)
   const listId = params.id
 
-  const formData = await request.formData()
-  const subListsData = formData.get("subLists")
+  const json = await request.json()
+  const subListsData = subListsSchema.safeParse(json)
 
-  if (!subListsData) {
-    throw new Response("No sublists data provided", { status: 400 })
+  if (!subListsData.success) {
+    return {
+      ok: false,
+      errors: subListsData.error,
+    }
   }
 
-  const subLists = subListsData
-    .toString()
-    .split(",")
-    .map((count) => Number.parseInt(count, 10))
-
-  if (subLists.some((count) => Number.isNaN(count)) || subLists.length === 0) {
-    throw new Response("Invalid sublist counts provided", { status: 400 })
-  }
-
-  console.log("Creating sublists with counts:", subLists)
-
-  await ListService.makeSubLists(
-    listId,
-    subLists.map((count) => ({
-      leadsCount: count,
-      assigneeId: undefined, // Assuming no specific assignee for simplicity
-    })),
-  )
+  await ListService.makeSubLists(listId, subListsData.data)
 }
 
 export default function Id({ loaderData }: Route.ComponentProps) {
@@ -180,6 +175,8 @@ type SubListCardProps = {
 }
 
 function SubListCard({ subList }: SubListCardProps) {
+  const assigneeFetcher = useFetcher<typeof subListAction>()
+
   return (
     <div key={subList.id} className="border-primary-500 border-l-[3px] pl-3">
       <header className="flex items-center justify-between">
@@ -201,9 +198,14 @@ function SubListCard({ subList }: SubListCardProps) {
 
       <label className="text-sm">
         <span className="mr-2">Atribuído a:</span>
-        <SubListAsigneeSelect
-          subListId={subList.id}
-          assigneeId={subList.assigneeId || undefined}
+        <AsigneeSelect
+          defaultAssignee={subList.assigneeId || undefined}
+          onChange={(assigneeId) => {
+            assigneeFetcher.submit(
+              { assigneeId: assigneeId },
+              { method: "PATCH", action: `/listinhas/${subList.id}` },
+            )
+          }}
         />
       </label>
 
@@ -212,32 +214,21 @@ function SubListCard({ subList }: SubListCardProps) {
   )
 }
 
-type SubListAsigneeSelectProps = {
-  subListId: string
-  assigneeId?: string
+type AsigneeSelectProps = {
+  defaultAssignee?: string
+  onChange: (assigneeId: string) => void
 }
 
-function SubListAsigneeSelect({
-  subListId,
-  assigneeId,
-}: SubListAsigneeSelectProps) {
+function AsigneeSelect({ defaultAssignee, onChange }: AsigneeSelectProps) {
   const usersFetcher = useFetcher<typeof usersLoader>({ key: "users" })
-  const assigneeFetcher = useFetcher<typeof subListAction>()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: causes an infinite loop
   useEffect(() => {
     usersFetcher.load("/users")
   }, [])
 
-  const handleValueChange = (value: string) => {
-    assigneeFetcher.submit(
-      { assigneeId: value },
-      { method: "PATCH", action: `/listinhas/${subListId}` },
-    )
-  }
-
   return (
-    <Select.Root defaultValue={assigneeId} onValueChange={handleValueChange}>
+    <Select.Root defaultValue={defaultAssignee} onValueChange={onChange}>
       <Select.Trigger className="inline-flex w-fit" size="sm">
         <Select.Value placeholder="Atribuir a um vendedor" />
       </Select.Trigger>
@@ -292,31 +283,17 @@ type SplitListDialogProps = {}
 type Sublist = {
   id: string
   leadsCount: number
+  assigneeId?: string
 }
 
 function SplitListDialog() {
   const { list } = useLoaderData<typeof loader>()
 
+  const fetcher = useFetcher<typeof action>()
+
   //   const [sublistsCount, setSublistsCount] = useState<number>()
   const [sublists, setSublists] = useState<Sublist[]>([])
 
-  //   const generateSublists = () => {
-  //     if (!sublistsCount || sublistsCount <= 0) {
-  //       setSublists([])
-  //       return
-  //     }
-  //     const leadsPerSublist = Math.floor(list.leads.length / sublistsCount)
-  //     const remainingLeads = list.leads.length % sublistsCount
-  //     const newSublists: Sublist[] = Array.from(
-  //       { length: sublistsCount },
-  //       (_, index) => ({
-  //         id: `sublist-${index + 1}`,
-  //         name: `Listinha ${index + 1}`,
-  //         leadsCount: leadsPerSublist + (index < remainingLeads ? 1 : 0),
-  //       }),
-  //     )
-  //     setSublists(newSublists)
-  //   }
 
   const updateSublistLeads = (id: string, leadsCount: number) => {
     setSublists((prev) =>
@@ -325,6 +302,25 @@ function SplitListDialog() {
           ? { ...sublist, leadsCount: Math.max(0, leadsCount || 0) }
           : sublist,
       ),
+    )
+  }
+
+  // distributes the leads equally among the sublists
+  // making sure that there is no remainder
+  const distributeLeads = () => {
+    const totalLeads = list.freeLeadsCount
+    const sublistCount = sublists.length
+
+    if (sublistCount === 0) return
+
+    const leadsPerSublist = Math.floor(totalLeads / sublistCount)
+    const remainder = totalLeads % sublistCount
+
+    setSublists((prev) =>
+      prev.map((sublist, index) => ({
+        ...sublist,
+        leadsCount: leadsPerSublist + (index < remainder ? 1 : 0),
+      })),
     )
   }
 
@@ -339,6 +335,26 @@ function SplitListDialog() {
       leadsCount: 0,
     }
     setSublists((prev) => [...prev, newSublist])
+  }
+
+  const updateAssignee = (id: string, assigneeId?: string) => {
+    setSublists((prev) =>
+      prev.map((sublist) =>
+        sublist.id === id ? { ...sublist, assigneeId } : sublist,
+      ),
+    )
+  }
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+
+    fetcher.submit(
+      sublists.map((sl) => ({
+        leadsCount: sl.leadsCount,
+        assigneeId: sl.assigneeId || null,
+      })),
+      { method: "POST", encType: "application/json" },
+    )
   }
 
   const totalDistributed = sublists.reduce(
@@ -357,57 +373,105 @@ function SplitListDialog() {
       </Dialog.Trigger>
 
       <Dialog.Content className="[--dialog-content-max-width:_38rem]">
-        <Dialog.Title className="w-full text-lg">
-          Dividir lista{" "}
-          <strong className="font-semibold text-primary-600">
-            {list.name}
-          </strong>
-        </Dialog.Title>
+        <Dialog.Header>
+          <Dialog.Title className="w-full text-lg">
+            Dividir lista{" "}
+            <strong className="font-semibold text-primary-600">
+              {list.name}
+            </strong>
+          </Dialog.Title>
+        </Dialog.Header>
 
         <div className="max-h-[50vh] overflow-y-auto">
-          <h3 className="mb-3 font-medium text-lg">Prévia da divisão</h3>
-
           <div className="space-y-3">
-            {sublists.map((sl, i) => (
-              <div key={sl.id} className="flex items-center gap-3 ">
-                <span className="font-medium text-sm">Listinha {i + 1}</span>
+            {sublists.length ? (
+              sublists.map((sl, i) => (
+                <div key={sl.id} className="flex items-center gap-3 ">
+                  <span className="font-medium text-sm">Listinha {i + 1}</span>
 
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={sl.leadsCount}
-                    onChange={(e) =>
-                      updateSublistLeads(sl.id, e.target.valueAsNumber)
-                    }
-                    className="w-20 py-1 text-sm"
-                  />
-                  <span className="text-sm text-zinc-600">leads</span>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={sl.leadsCount}
+                      onChange={(e) =>
+                        updateSublistLeads(sl.id, e.target.valueAsNumber)
+                      }
+                      className="w-20 py-1 text-sm"
+                    />
+                    <span className="text-sm text-zinc-600"> leads </span>
+                    <AsigneeSelect
+                      defaultAssignee={sl.assigneeId || undefined}
+                      onChange={(assigneeId) =>
+                        updateAssignee(sl.id, assigneeId)
+                      }
+                    />
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeSublist(sl.id)}
+                    className="ml-auto size-8 text-red-600 hover:text-red-700"
+                  >
+                    <Trash2Icon className="size-4" />
+                  </Button>
                 </div>
+              ))
+            ) : (
+              <p className="text-zinc-600">
+                Nenhuma listinha criada. Adicione uma para começar.
+              </p>
+            )}
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeSublist(sl.id)}
-                  className="ml-auto size-8 text-red-600 hover:text-red-700"
-                >
-                  <Trash2Icon className="size-4" />
-                </Button>
-              </div>
-            ))}
+            <fieldset className="my-4 flex gap-2 rounded-lg border border-zinc-300 bg-zinc-100/50 p-1">
+              <Tooltip.Root delayDuration={750}>
+                <Tooltip.Trigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={addSublist}
+                    className="text-primary-600"
+                    icon="left"
+                  >
+                    <PlusIcon className="size-4" />
+                    Adicionar listinha
+                  </Button>
+                </Tooltip.Trigger>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={addSublist}
-              className="inline-flex gap-2 text-primary-600"
-            >
-              <PlusIcon className="size-4" />
-              Adicionar listinha
-            </Button>
+                <Tooltip.Content>Cria uma listinha vazia</Tooltip.Content>
+              </Tooltip.Root>
+
+              <Tooltip.Root delayDuration={750}>
+                <Tooltip.Trigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={distributeLeads}
+                    className="text-primary-600"
+                  >
+                    Distribuir igualmente
+                  </Button>
+                </Tooltip.Trigger>
+                {sublists.length > 0 && (
+                  <Tooltip.Content>
+                    Distribui os {list.freeLeadsCount} leads igualmente entre as{" "}
+                    {sublists.length} listinhas (
+                    {Math.floor(list.freeLeadsCount / sublists.length)} em cada)
+                  </Tooltip.Content>
+                )}
+              </Tooltip.Root>
+
+              <Button
+                onClick={() => setSublists([])}
+                className="ml-auto text-red-800 hover:bg-red-200 hover:text-red-950"
+                variant="ghost"
+                size="sm"
+              >
+                Limpar
+              </Button>
+            </fieldset>
           </div>
-
-          <hr className="my-4 border-zinc-600 border-dotted" />
 
           <p className="text-zinc-600 *:text-primary-500">
             <strong>{totalDistributed}</strong> de{" "}
@@ -434,20 +498,13 @@ function SplitListDialog() {
             <Button variant="outline">Cancelar</Button>
           </Dialog.Close>
 
-          <Form method="POST">
-            <Button
-              className="bg-primary-600 hover:bg-primary-700"
-              disabled={sublists.length <= 0 || remainingLeads < 0}
-              onClick={() => {
-                // TODO: Implement the actual split logic
-                console.log("Splitting list with distribution:", sublists)
-              }}
-              name="subLists"
-              value={sublists.map((sl) => sl.leadsCount).join(",")}
-            >
-              Confirmar divisão
-            </Button>
-          </Form>
+          <Button
+            className="bg-primary-600 hover:bg-primary-700"
+            disabled={sublists.length <= 0 || remainingLeads < 0}
+            onClick={handleSubmit}
+          >
+            Confirmar divisão
+          </Button>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog.Root>
