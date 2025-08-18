@@ -1,5 +1,6 @@
 export { Button, type ButtonProps } from "./components/button"
 export { Input, type InputProps } from "./components/input"
+export { Checkbox } from "./components/checkbox"
 import * as BaseDialog from "./components/dialog"
 import * as BaseSelect from "./components/select"
 import * as BaseTable from "./components/table"
@@ -58,6 +59,7 @@ export const Toast = {
   Action: ToastPrimitives.ToastAction,
   Close: ToastPrimitives.ToastClose,
 }
+
 
 export const useToast = ToastPrimitives.useToast
 export const toast = ToastPrimitives.toast
