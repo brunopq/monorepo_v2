@@ -10,8 +10,8 @@ import {
   MailIcon,
   MoreHorizontalIcon,
 } from "lucide-react"
-import { Form, Link, useFetcher } from "react-router"
-import { Button, Table, Input, Select } from "iboti-ui"
+import { Form, Link, useFetcher, useLoaderData } from "react-router"
+import { Button, Table, Input, Select, Checkbox } from "iboti-ui"
 
 import {
   interactionStatuses,
@@ -101,16 +101,38 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
 export default function SubListRoute({ loaderData }: Route.ComponentProps) {
   const { user, subList } = loaderData
 
+  const [showContacted, setShowContacted] = useState(true)
+
+  const headersSet = new Set<string>()
+
+  subList.leads
+    .flatMap((l) => Object.keys(l.extraInfo || {}))
+    .map((h) => headersSet.add(h))
+
+  const headers = [...headersSet]
+
+  const leads: DomainLeadWithInteractions[] = (
+    showContacted
+      ? subList.leads
+      : subList.leads.filter((l) => l.interactions.length === 0)
+  ).map((l) => ({
+    ...l,
+    extra: l.extraInfo || {},
+    interactions: l.interactions.map((i) => ({
+      ...i,
+      notes: i.notes || undefined,
+    })),
+  }))
+
   const canStart = subList.state === "new"
   const canFinnish =
     subList.state === "in_progress" &&
     subList.leads.every((l) => l.interactions.length > 0)
   const canReopen = subList.state === "completed"
-  
 
   return (
-    <div className={maxWidth("py-4")}>
-      <header className="mb-4 flex items-center justify-between gap-4 border-zinc-400 border-b border-dotted pb-2">
+    <div className="grid h-screen grid-rows-[auto_1fr] gap-4 p-4">
+      <header className="flex items-center justify-between gap-4 border-zinc-400 border-b border-dotted pb-2">
         <div className="flex items-start gap-4">
           <Button asChild variant="ghost" size="icon">
             <Link to="..">
@@ -125,12 +147,31 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 
               <SubListStatusPill status={subList.state} />
             </span>
-            <p>Atribuído a: {subList.assignee?.name || "Não atribuída"}</p>
+            {/* <p>Atribuído a: {subList.assignee?.name || "Não atribuída"}</p> */}
             <p>Leads: {subList.leadsCount}</p>
           </div>
         </div>
 
         <div>
+          {!canStart && !canReopen && !canFinnish && (
+            <fieldset className="top-2 z-20 my-2 rounded-md border border-zinc-300 bg-zinc-50/50 p-1 text-sm shadow-sm backdrop-blur-2xl">
+              <label
+                className={cn(
+                  "flex w-fit select-none items-center gap-2 rounded-sm px-2 py-0.5 transition-colors hover:bg-primary-300/25 ",
+                  showContacted && "bg-primary-200/60",
+                )}
+              >
+                Mostrar leads contatados{" "}
+                <Checkbox
+                  checked={showContacted}
+                  onCheckedChange={(s) =>
+                    setShowContacted(s === "indeterminate" ? true : s)
+                  }
+                />
+              </label>
+            </fieldset>
+          )}
+
           {canStart && (
             <Form method="patch" className="inline-flex items-center">
               <Button
@@ -172,44 +213,63 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
         </div>
       </header>
 
-      <div className="mt-4">
-        <h2 className="font-semibold text-xl">
-          Leads ({subList.leads.length})
-        </h2>
+      <LeadsTable
+        isActive={subList.state === "in_progress"}
+        leads={leads}
+        headers={headers}
+      />
+    </div>
+  )
+}
 
-        <Table.Root className="space-y-2">
-          <Table.Header>
-            <Table.Row>
-              <Table.Head>Nome</Table.Head>
-              <Table.Head>CPF</Table.Head>
-              <Table.Head>Telefone</Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {subList.leads.map((lead) => (
-              <LeadRow
-                key={lead.id}
-                listState={subList.state}
-                lead={{
-                  ...lead,
-                  extra: lead.extraInfo as unknown as Record<string, string>,
-                  interactions: lead.interactions.map((i) => ({
-                    ...i,
-                    notes: i.notes || undefined,
-                  })),
-                }}
-              />
-            ))}
-          </Table.Body>
-        </Table.Root>
-      </div>
+type LeadsTableProps = {
+  leads: DomainLeadWithInteractions[]
+  headers: string[]
+  isActive: boolean
+}
+
+function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
+  return (
+    <div className="sticky top-0 overflow-auto">
+      <Table.Root className="space-y-2">
+        <Table.Row>
+          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
+            Nome
+          </Table.Head>
+          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
+            CPF
+          </Table.Head>
+          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
+            Telefone
+          </Table.Head>
+          {headers.map((h) => (
+            <Table.Head
+              className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl"
+              key={h}
+            >
+              {h}
+            </Table.Head>
+          ))}
+        </Table.Row>
+        <Table.Body>
+          {leads.map((lead) => (
+            <LeadRow
+              key={lead.id}
+              isActive={isActive}
+              headers={headers}
+              lead={lead}
+            />
+          ))}
+        </Table.Body>
+      </Table.Root>
     </div>
   )
 }
 
 type LeadRowProps = {
   lead: DomainLeadWithInteractions
-  listState: SubListState
+  headers: string[]
+  isActive: boolean
 }
 
 const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
@@ -258,9 +318,7 @@ const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
   }
 }
 
-function LeadRow({ lead, listState }: LeadRowProps) {
-  const isActive = listState === "in_progress"
-
+function LeadRow({ lead, headers, isActive }: LeadRowProps) {
   const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -298,48 +356,53 @@ function LeadRow({ lead, listState }: LeadRowProps) {
         <Table.Cell>{lead.name}</Table.Cell>
         <Table.Cell>{lead.cpf}</Table.Cell>
         <Table.Cell>{lead.phoneNumber}</Table.Cell>
+        {[...headers].map((h) => (
+          <Table.Cell key={h}>{lead.extra?.[h] || "-"}</Table.Cell>
+        ))}
       </Table.Row>
 
       <Table.Row
         data-open={open}
         className="hidden transition-colors data-[open=true]:table-row data-[open=true]:bg-zinc-100"
       >
-        <Table.Cell colSpan={20} className="p-4">
-          <header className="mb-2 flex items-center justify-between">
-            <h3 className="font-semibold text-lg text-primary-800">
-              Interações
-            </h3>
+        <Table.Cell colSpan={9999} className="p-0">
+          <div className="sticky left-0 w-[calc(100vw-2rem-1px)] p-4">
+            <header className="mb-2 flex items-center justify-between">
+              <h3 className="font-semibold text-lg text-primary-800">
+                Interações
+              </h3>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowForm(!showForm)}
-              className="ml-2"
-            >
-              {showForm ? "Fechar formulário" : "Registrar nova interação"}
-            </Button>
-          </header>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowForm(!showForm)}
+                className="ml-2"
+              >
+                {showForm ? "Fechar formulário" : "Registrar nova interação"}
+              </Button>
+            </header>
 
-          {showForm && (
-            <NewInteractionForm
-              leadId={lead.id}
-              onClose={() => setShowForm(false)}
-            />
-          )}
-
-          <div className="space-y-2">
-            {lead.interactions.length > 0 ? (
-              lead.interactions.map((interaction) => (
-                <LeadInteractionRow
-                  key={interaction.id}
-                  interaction={interaction}
-                  leadId={lead.id}
-                  sellerName={"usuari"}
-                />
-              ))
-            ) : (
-              <p>Nenhuma interação registrada.</p>
+            {showForm && (
+              <NewInteractionForm
+                leadId={lead.id}
+                onClose={() => setShowForm(false)}
+              />
             )}
+
+            <div className="space-y-2">
+              {lead.interactions.length > 0 ? (
+                lead.interactions.map((interaction) => (
+                  <LeadInteractionRow
+                    key={interaction.id}
+                    interaction={interaction}
+                    leadId={lead.id}
+                    sellerName={"usuari"}
+                  />
+                ))
+              ) : (
+                <p>Nenhuma interação registrada.</p>
+              )}
+            </div>
           </div>
         </Table.Cell>
       </Table.Row>

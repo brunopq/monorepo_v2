@@ -25,10 +25,22 @@ export type NewDomainLead = Omit<DomainLead, 'id'>
 
 class LeadService {
     async createMany(newLeads: NewDomainLead[]): Promise<DomainLead[]> {
-        const a = await db.insert(leads).values(newLeads.map(l => ({
-            ...l,
-            extraInfo: l.extra,
-        }))).returning()
+        const dbLeads: NewDbLead[] = newLeads.map(l => {
+            const extra = { ...l.extra }
+            // biome-ignore lint/complexity/noForEach: <explanation>
+            Object.entries(extra).forEach(([k, v]) => {
+                if (k in ["Nome", "CPF", "Telefone", "Data de Nascimento", "Estado"]) {
+                    delete extra[k]
+                }
+            })
+
+            return ({
+                ...l,
+                extraInfo: extra
+            })
+        })
+
+        const a = await db.insert(leads).values(dbLeads).returning()
 
         return a.map(l => ({
             ...l,
