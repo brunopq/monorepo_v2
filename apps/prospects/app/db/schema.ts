@@ -2,8 +2,7 @@ import { relations } from 'drizzle-orm'
 import { char, date, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { customAlphabet } from 'nanoid'
 import { interactionStatuses, interactionTypes } from '~/constants/interactions'
-
-import { subListStates } from '~/services/SubListService'
+import { subListStates } from '~/constants/subList'
 
 const idLength = 12
 const nanoid = customAlphabet(
@@ -38,7 +37,7 @@ export const leads = pgTable('leads', {
     subListId: text().references(() => subLists.id),
     name: text().notNull(),
     phoneNumber: text().notNull(),
-    cpf: char({ length: 11 }),
+    cpf: char({ length: 11 }).notNull(),
     birthDate: date({ mode: 'string' }),
     state: char({ length: 2 }),
     extraInfo: jsonb(),

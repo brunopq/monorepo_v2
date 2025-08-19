@@ -11,7 +11,7 @@ export type DomainLead = {
     listId: string;
     // subListId: string | null;
     phoneNumber: string;
-    cpf: string | null;
+    cpf: string;
     birthDate: string | null;
     state: string | null;
     extra: Record<string, string> | null;

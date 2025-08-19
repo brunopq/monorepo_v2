@@ -10,7 +10,7 @@ import {
   MailIcon,
   MoreHorizontalIcon,
 } from "lucide-react"
-import { Form, Link, useFetcher, useLoaderData } from "react-router"
+import { Form, Link, useFetcher } from "react-router"
 import { Button, Table, Input, Select, Checkbox } from "iboti-ui"
 
 import {
@@ -21,7 +21,8 @@ import {
 } from "~/constants/interactions"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
-import { cn, maxWidth } from "~/utils/styling"
+import { cn } from "~/utils/styling"
+import { cnpj, cpf, phone } from "~/utils/formatting"
 
 import SubListService, {
   subListStatesSchema,
@@ -29,10 +30,7 @@ import SubListService, {
   type SubListState,
 } from "~/services/SubListService"
 import type { DomainInteraction } from "~/services/InteractionService"
-import type {
-  DomainLead,
-  DomainLeadWithInteractions,
-} from "~/services/LeadService"
+import type { DomainLeadWithInteractions } from "~/services/LeadService"
 
 import type { action as interactionAction } from "~/routes/leads/[id]/interactions/[id]"
 
@@ -147,7 +145,6 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 
               <SubListStatusPill status={subList.state} />
             </span>
-            {/* <p>Atribuído a: {subList.assignee?.name || "Não atribuída"}</p> */}
             <p>Leads: {subList.leadsCount}</p>
           </div>
         </div>
@@ -354,11 +351,15 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
         )}
       >
         <Table.Cell>{lead.name}</Table.Cell>
-        <Table.Cell>{lead.cpf}</Table.Cell>
-        <Table.Cell>{lead.phoneNumber}</Table.Cell>
-        {[...headers].map((h) => (
-          <Table.Cell key={h}>{lead.extra?.[h] || "-"}</Table.Cell>
-        ))}
+        <Table.Cell>{cpf(lead.cpf)}</Table.Cell>
+        <Table.Cell>{phone(lead.phoneNumber)}</Table.Cell>
+        {[...headers].map((h) => {
+          let value = "-"
+          if (lead.extra?.[h]) value = lead.extra[h]
+          if (h.toLocaleLowerCase() === "cnpj") value = cnpj(value)
+
+          return <Table.Cell key={h}>{value}</Table.Cell>
+        })}
       </Table.Row>
 
       <Table.Row
@@ -396,7 +397,7 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
                     key={interaction.id}
                     interaction={interaction}
                     leadId={lead.id}
-                    sellerName={"usuari"}
+                    sellerName={interaction.sellerId}
                   />
                 ))
               ) : (
@@ -443,7 +444,7 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
     >
       <div className="grid grid-cols-[1fr_1fr_auto] grid-rows-2 gap-1">
         <Select.Root name="interactionType">
-          <Select.Trigger className="text-sm">
+          <Select.Trigger className="row-start-1 text-sm">
             <Select.Value placeholder="Selecione o canal da interação" />
           </Select.Trigger>
           <Select.Content>
@@ -459,7 +460,7 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
         </Select.Root>
 
         <Select.Root name="interactionStatus">
-          <Select.Trigger className="text-sm">
+          <Select.Trigger className="row-start-2 text-sm">
             <Select.Value placeholder="Selecione o status" />
           </Select.Trigger>
           <Select.Content>
@@ -474,7 +475,7 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
         <Input
           name="notes"
           placeholder="Notas (opcional)"
-          className="col-span-2 text-sm"
+          className="row-span-2 text-sm"
         />
 
         <Button
@@ -560,7 +561,7 @@ function LeadInteractionRow({
         statusStyles.cardBg,
       )}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
           <span className="mr-2 inline-flex items-center gap-1 font-semibold text-primary-800">
             {
@@ -581,38 +582,35 @@ function LeadInteractionRow({
               ]
             }
           </span>
-          <p className="text-sm text-zinc-500">Vendedor: {sellerName}</p>
+          <p className="text-sm text-zinc-500">
+            {new Date(interaction.contactedAt).toLocaleString("pt-BR", {
+              dateStyle: "short",
+              timeStyle: "short",
+            })}
+          </p>
+          {/* <p className="text-sm text-zinc-500">Vendedor: {sellerName}</p> */}
           {interaction.notes && (
             <p className="text-sm text-zinc-700">{interaction.notes}</p>
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-1 text-right">
-          <span className="text-sm text-zinc-500">
-            {new Date(interaction.contactedAt).toLocaleString("pt-BR", {
-              dateStyle: "short",
-              timeStyle: "short",
-            })}
-          </span>
-
-          <span>
-            <Button
-              size="icon"
-              className="size-auto p-2 text-zinc-500"
-              variant="ghost"
-              onClick={handleEdit}
-            >
-              <PencilLineIcon className="size-4" />
-            </Button>
-            <Button
-              size="icon"
-              className="size-auto p-2 text-zinc-500"
-              variant="ghost"
-              onClick={handleDelete}
-            >
-              <Trash2Icon className="size-4" />
-            </Button>
-          </span>
+        <div className="space-x-1">
+          <Button
+            size="icon"
+            className="size-auto p-2 text-zinc-500"
+            variant="ghost"
+            onClick={handleEdit}
+          >
+            <PencilLineIcon className="size-4" />
+          </Button>
+          <Button
+            size="icon"
+            className="size-auto p-2 text-zinc-500"
+            variant="ghost"
+            onClick={handleDelete}
+          >
+            <Trash2Icon className="size-4" />
+          </Button>
         </div>
       </div>
     </div>

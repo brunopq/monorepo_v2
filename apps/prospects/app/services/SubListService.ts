@@ -2,18 +2,14 @@ import { and, eq, sql } from "drizzle-orm"
 import { z } from "zod/v4"
 
 import { interactionStatuses } from "../constants/interactions"
+import { subListStates } from "../constants/subList"
 
 import { db } from "~/db"
 import { leadInteractions, leads, subLists } from "~/db/schema"
 
 import type { InteractionStatuses } from "./InteractionService"
 
-export const subListStates = [
-    "new",
-    "in_progress",
-    "completed",
-    "canceled",
-] as const
+export { subListStates } from "../constants/subList"
 
 export const subListStatesSchema = z.enum(subListStates)
 
