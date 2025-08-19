@@ -1,7 +1,9 @@
 import { Hono } from "hono"
 import { showRoutes } from "hono/dev"
+import { describeRoute, openAPISpecs } from "hono-openapi"
+import { resolver, validator } from "hono-openapi/zod"
 import { HTTPException } from "hono/http-exception"
-import { zValidator } from "@hono/zod-validator"
+import { Scalar } from "@scalar/hono-api-reference"
 import { z } from "zod"
 
 import { verifyPassword } from "./hashing.js"
@@ -10,37 +12,61 @@ import { authGuard } from "./middlewares/authGuard.js"
 import { getUser } from "./middlewares/getUser.js"
 import { jwtMiddleware, makeJwt } from "./utils/jwt.js"
 
-import UserService, {
-  createUserSchema,
+import UserService from "./services/UserService.js"
+
+import {
+  loginSchema,
+  userSchema,
+  newUserSchema,
+  userRolesSchema,
+  responseUserSchema,
   updateUserSchema,
-} from "./services/UserService.js"
+  loginResponseSchema,
+  LoginResponseDTO,
+} from "./dtos/index.js"
 
 const app = new Hono()
 
-const loginSchema = z.object({
-  username: z.string(),
-  password: z.string(),
-})
+app.post(
+  "/login",
+  describeRoute({
+    tags: ["Login"],
+    description: "User login endpoint",
+    responses: {
+      200: {
+        description: "Successful login",
+        content: {
+          "application/json": {
+            schema: resolver(loginResponseSchema),
+          },
+        },
+      },
+      401: {
+        description: "Invalid credentials",
+      },
+    },
+  }),
+  validator("json", loginSchema),
+  async (c) => {
+    const { username, password } = c.req.valid("json")
 
-app.post("/login", zValidator("json", loginSchema), async (c) => {
-  const { username, password } = c.req.valid("json")
+    const userInfo = await UserService.findByName(username)
 
-  const userInfo = await UserService.findByName(username)
+    if (!userInfo || !userInfo.accountActive) {
+      throw new HTTPException(401, { message: "Invalid credentials" })
+    }
 
-  if (!userInfo || !userInfo.accountActive) {
-    throw new HTTPException(401, { message: "Invalid credentials" })
-  }
+    const userPawssordValid = verifyPassword(password, userInfo.passwordHash)
 
-  const userPawssordValid = verifyPassword(password, userInfo.passwordHash)
+    if (!userPawssordValid) {
+      throw new HTTPException(401, { message: "Invalid credentials" })
+    }
 
-  if (!userPawssordValid) {
-    throw new HTTPException(401, { message: "Invalid credentials" })
-  }
+    const jwt = await makeJwt(userInfo)
 
-  const jwt = await makeJwt(userInfo)
-
-  return c.json({ token: jwt, user: userInfo })
-})
+    return c.json({ token: jwt, user: userInfo })
+  },
+)
 
 const userRouter = new Hono().use(jwtMiddleware(), getUser())
 
@@ -68,30 +94,39 @@ userRouter.get("/me", (c) => {
   })
 })
 
-userRouter.get("/:id", zValidator('param', z.object({
-  id: z.string().uuid(),
-})), async (c) => {
-  const userId = c.req.param("id")
+userRouter.get(
+  "/:id",
+  validator(
+    "param",
+    z.object({
+      id: z.string().uuid(),
+    }),
+  ),
+  async (c) => {
+    const userId = c.req.param("id")
 
-  const user = await UserService.findById(userId)
+    const user = await UserService.findById(userId)
 
-  if (!user) {
-    throw new HTTPException(404, { message: `User with id "${userId}" not found` })
-  }
+    if (!user) {
+      throw new HTTPException(404, {
+        message: `User with id "${userId}" not found`,
+      })
+    }
 
-  return c.json({
-    id: user.id,
-    name: user.name,
-    fullName: user.fullName,
-    role: user.role,
-    accountActive: user.accountActive,
-  })
-})
+    return c.json({
+      id: user.id,
+      name: user.name,
+      fullName: user.fullName,
+      role: user.role,
+      accountActive: user.accountActive,
+    })
+  },
+)
 
 userRouter.post(
   "/",
   authGuard("ADMIN"),
-  zValidator("json", createUserSchema),
+  validator("json", newUserSchema),
   async (c) => {
     const createUser = c.req.valid("json")
 
@@ -124,7 +159,7 @@ userRouter.post(
 userRouter.patch(
   "/:id",
   authGuard("ADMIN"),
-  zValidator("json", updateUserSchema),
+  validator("json", updateUserSchema),
   async (c) => {
     const userId = c.req.param("id")
     const updateUser = c.req.valid("json")
@@ -172,6 +207,26 @@ userRouter.delete("/:id", authGuard("ADMIN"), async (c) => {
 })
 
 app.route("/users", userRouter)
+
+app.get("/scalar", Scalar({ url: "/openapi" }))
+app.get(
+  "/openapi",
+  openAPISpecs(app, {
+    documentation: {
+      info: {
+        title: "Auauth API",
+        description: "API for user authentication and user management",
+        version: "1.0.0",
+      },
+      servers: [
+        {
+          url: "http://localhost:3000",
+          description: "Local development server",
+        },
+      ],
+    },
+  }),
+)
 
 showRoutes(app, { colorize: true })
 export default app

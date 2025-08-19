@@ -1,27 +1,20 @@
+import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { db } from "../db"
-import { newUserSchema, user } from "../db/schema"
+import { user } from "../db/schema"
+
+import type { NewUserDTO, UpdateUserDTO, UserDTO } from '../dtos'
 
 import { hashPassword } from "../hashing"
-import { eq } from "drizzle-orm"
 
-export const createUserSchema = newUserSchema
-  .omit({ id: true, passwordHash: true })
-  .extend({ password: z.string() })
-export const updateUserSchema = newUserSchema
-  .extend({ password: z.string() })
-  .partial()
-
-export type CreateUser = z.infer<typeof createUserSchema>
-export type UpdateUser = z.infer<typeof updateUserSchema>
 
 class UserService {
-  async findAll() {
+  async findAll(): Promise<UserDTO[]> {
     return await db.query.user.findMany()
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<UserDTO | undefined> {
     return await db.query.user.findFirst({
       where: (user, { eq }) => eq(user.id, id),
     })
@@ -33,7 +26,7 @@ class UserService {
     })
   }
 
-  async create(newUser: CreateUser) {
+  async create(newUser: NewUserDTO): Promise<UserDTO> {
     const passwordHash = hashPassword(newUser.password)
     const [created] = await db
       .insert(user)
@@ -43,14 +36,16 @@ class UserService {
     return created
   }
 
-  async update(id: string, updateUser: UpdateUser) {
+  async update(id: string, updateUser: UpdateUserDTO): Promise<UserDTO> {
+    const u: Partial<UserDTO> = { ...updateUser, id }
+
     if (updateUser.password) {
-      updateUser.passwordHash = hashPassword(updateUser.password)
+      u.passwordHash = hashPassword(updateUser.password)
     }
 
     const [updatedUser] = await db
       .update(user)
-      .set({ ...updateUser, id })
+      .set(u)
       .where(eq(user.id, id))
       .returning()
 

@@ -2,7 +2,7 @@ import { jwt, sign } from "hono/jwt"
 import { addDays } from "date-fns"
 import { z } from "zod"
 
-import { type User, userRoleSchmea } from "../db/schema"
+import { type UserDTO, userRolesSchema } from "../dtos"
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-this-in-production"
@@ -13,14 +13,14 @@ export const jwtSchema = z.object({
     id: z.string(),
     name: z.string(),
     fullName: z.string().nullish(),
-    role: userRoleSchmea(),
+    role: userRolesSchema,
     accountActive: z.boolean(),
   }),
 })
 
 type Jwt = z.infer<typeof jwtSchema>
 
-export const makeJwt = (user: User) => {
+export const makeJwt = (user: UserDTO) => {
   return sign(
     jwtSchema.parse({
       exp: addDays(new Date(), 1).getTime(),

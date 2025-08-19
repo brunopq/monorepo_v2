@@ -7,14 +7,17 @@
     "generate": "bun drizzle-kit generate"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.4.3",
+    "@hono/zod-validator": "^0.7.2",
+    "@scalar/hono-api-reference": "^0.9.13",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.40.0",
     "drizzle-zod": "^0.7.0",
     "hono": "^4.7.4",
+    "hono-openapi": "^0.4.8",
     "pg": "^8.13.3",
-    "zod": "^3.24.2"
+    "zod": "^4.0.17",
+    "zod-openapi": "^5.3.1"
   },
   "devDependencies": {
     "@types/bun": "^1.2.4",

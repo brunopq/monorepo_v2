@@ -1,14 +1,14 @@
 import { createMiddleware } from "hono/factory"
 import { HTTPException } from "hono/http-exception"
 
-import type { User } from "../db/schema"
+import type { UserDTO } from "../dtos"
 
 import { jwtSchema } from "../utils/jwt"
 
 import UserService from "../services/UserService"
 
 export const getUser = () =>
-  createMiddleware<{ Variables: { user: User } }>(async (c, next) => {
+  createMiddleware<{ Variables: { user: UserDTO } }>(async (c, next) => {
     const token = c.get("jwtPayload")
     const parsed = jwtSchema.safeParse(token)
 
