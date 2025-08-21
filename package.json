@@ -6,6 +6,8 @@
     "dev:auauth": "bun --bun run --filter auauth dev",
     "dev:vendas": "bun run --filter vendas dev",
     "dev:prevenda": "bun --bun run --filter prevenda dev",
+    "dev:prospects": "bun --bun run --filter prospects dev",
+    "dev:admin_console": "bun --bun run --filter admin_console dev",
 
     "build:packages": "bun --bun run --filter iboti-ui build",
     "build:auauth": "bun --bun run --filter auauth build",
@@ -18,7 +20,13 @@
     "lint": "biome lint",
     "format": "biome format --write"
   },
-  "workspaces": ["apps/vendas", "apps/auauth", "apps/prospects", "packages/*"],
+  "workspaces": [
+    "apps/vendas",
+    "apps/auauth",
+    "apps/prospects",
+    "apps/admin_console",
+    "packages/*"
+  ],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4"
   }
