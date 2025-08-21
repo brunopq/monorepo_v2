@@ -2,7 +2,7 @@ import { db } from "."
 import { hashPassword } from "../hashing"
 import { user } from "./schema"
 
-async function seed() {
+export async function seed() {
   const ademiro = await db
     .insert(user)
     .values({
@@ -15,4 +15,3 @@ async function seed() {
   console.log(ademiro)
 }
 
-seed()

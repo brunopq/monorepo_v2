@@ -6,13 +6,15 @@ import { HTTPException } from "hono/http-exception"
 import { Scalar } from "@scalar/hono-api-reference"
 import { z } from "zod"
 
-import { verifyPassword } from "./hashing.js"
+import { verifyPassword } from "./hashing"
 
-import { authGuard } from "./middlewares/authGuard.js"
-import { getUser } from "./middlewares/getUser.js"
-import { jwtMiddleware, makeJwt } from "./utils/jwt.js"
+import { seed } from './db/seeding'
 
-import UserService from "./services/UserService.js"
+import { authGuard } from "./middlewares/authGuard"
+import { getUser } from "./middlewares/getUser"
+import { jwtMiddleware, makeJwt } from "./utils/jwt"
+
+import UserService from "./services/UserService"
 
 import {
   loginSchema,
@@ -23,7 +25,13 @@ import {
   updateUserSchema,
   loginResponseSchema,
   LoginResponseDTO,
-} from "./dtos/index.js"
+} from "./dtos/index"
+
+if (process.env.SEED === 'true') {
+  console.log("Seeding database...")
+  await seed()
+  console.log("Database seeded successfully.")
+}
 
 const app = new Hono()
 
