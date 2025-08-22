@@ -6,6 +6,7 @@ import * as BaseSelect from "./components/select"
 import * as BaseTable from "./components/table"
 import * as BaseTooltip from "./components/tooltip"
 import * as ToastPrimitives from "./components/toast"
+import * as DropdownMenuPrimitive from "./components/dropdown-menu"
 
 export { PieChart } from "./components/charts/pie"
 
@@ -58,6 +59,22 @@ export const Toast = {
   Description: ToastPrimitives.ToastDescription,
   Action: ToastPrimitives.ToastAction,
   Close: ToastPrimitives.ToastClose,
+}
+
+export const DropdownMenu = {
+  Root: DropdownMenuPrimitive.DropdownMenu,
+  Trigger: DropdownMenuPrimitive.DropdownMenuTrigger,
+  Group: DropdownMenuPrimitive.DropdownMenuGroup,
+  Portal: DropdownMenuPrimitive.DropdownMenuPortal,
+  Sub: DropdownMenuPrimitive.DropdownMenuSub,
+  RadioGroup: DropdownMenuPrimitive.DropdownMenuRadioGroup,
+  SubTrigger: DropdownMenuPrimitive.DropdownMenuSubTrigger,
+  SubContent: DropdownMenuPrimitive.DropdownMenuSubContent,
+  Content: DropdownMenuPrimitive.DropdownMenuContent,
+  Item: DropdownMenuPrimitive.DropdownMenuItem,
+  CheckboxItem: DropdownMenuPrimitive.DropdownMenuCheckboxItem,
+  Label: DropdownMenuPrimitive.DropdownMenuLabel,
+  Separator: DropdownMenuPrimitive.DropdownMenuSeparator,
 }
 
 
