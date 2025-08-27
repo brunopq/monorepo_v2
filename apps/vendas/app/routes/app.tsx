@@ -11,7 +11,10 @@ import { getUserOrRedirect } from "~/lib/authGuard"
 import { Button, DropdownMenu } from "~/components/ui"
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return await getUserOrRedirect(request, "/login")
+  const { user } = await getUserOrRedirect(request, "/login")
+  console.log("returning user from loader", user)
+
+  return user
 }
 
 export const meta: MetaFunction = () => [

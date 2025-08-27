@@ -11,11 +11,11 @@ import { autofitColumns, excelCurrency } from "~/lib/XLSXUtils"
 import UserService from "~/services/UserService"
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await getAdminOrRedirect(request)
+  const { jwt } = await getAdminOrRedirect(request)
 
   const { month, year } = extractDateFromRequest(request)
 
-  const data = await UserService.listWithComissions(month, year)
+  const data = await UserService.listWithComissions(jwt, month, year)
 
   const wb = XLSX.utils.book_new()
   const ws = XLSX.utils.sheet_new()

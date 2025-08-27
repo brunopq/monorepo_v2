@@ -44,7 +44,7 @@ import UserService from "~/services/UserService"
 const maybeNumber = z.coerce.number().nullable()
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const user = await getUserOrRedirect(request)
+  const { user } = await getUserOrRedirect(request)
 
   const { year, month } = extractDateFromRequest(request)
 
@@ -103,7 +103,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const user = await getUserOrRedirect(request)
+  const { user } = await getUserOrRedirect(request)
 
   const formData = await request.formData()
 

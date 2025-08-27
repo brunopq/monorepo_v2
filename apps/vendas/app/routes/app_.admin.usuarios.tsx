@@ -46,11 +46,11 @@ import {
 import SalesService from "~/services/SalesService"
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await getAdminOrRedirect(request)
+  const { jwt } = await getAdminOrRedirect(request)
 
   const { year, month } = extractDateFromRequest(request)
 
-  const users = await UserService.listWithComissions(month, year)
+  const users = await UserService.listWithComissions(jwt, month, year)
   const totalEstimatedValue = await SalesService.getTotalEstimatedValueByMonth(
     month,
     year,

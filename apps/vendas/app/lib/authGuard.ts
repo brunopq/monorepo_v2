@@ -6,15 +6,15 @@ import { destroySession, getSession, type SessionData } from "~/session"
 export async function getUserOrRedirect(
   request: Request,
   redirectPath: { noredirect: true },
-): Promise<DomainUser | null>
+): Promise<SessionData | null>
 export async function getUserOrRedirect(
   request: Request,
   redirectPath?: string,
-): Promise<DomainUser>
+): Promise<SessionData>
 export async function getUserOrRedirect(
   request: Request,
   redirectPath?: string | { noredirect: true },
-): Promise<DomainUser | null> {
+): Promise<SessionData | null> {
   const session = await getSession(request)
 
   if (typeof redirectPath === "object" && "noredirect" in redirectPath) {
@@ -31,15 +31,15 @@ export async function getUserOrRedirect(
 export async function getAdminOrRedirect(
   request: Request,
   redirectPath: { noredirect: true },
-): Promise<DomainUser | null>
+): Promise<SessionData | null>
 export async function getAdminOrRedirect(
   request: Request,
   redirectPath?: string,
-): Promise<DomainUser>
+): Promise<SessionData>
 export async function getAdminOrRedirect(
   request: Request,
   redirectPath?: string | { noredirect: true },
-): Promise<DomainUser | null> {
+): Promise<SessionData | null> {
   const session = await getSession(request)
 
   if (typeof redirectPath === "object" && "noredirect" in redirectPath) {
@@ -56,7 +56,7 @@ export async function getAdminOrRedirect(
 export async function assertUser(
   session: Session<SessionData>,
   redirectPath = "/",
-) /*: Promise<DomainUser> */ {
+): Promise<SessionData> {
   console.log(session.data)
   const user = session.data.user
   const jwt = session.data.jwt
@@ -75,7 +75,10 @@ export async function assertUser(
       throw redirect(redirectPath)
     }
 
-    return remoteUser
+    return {
+      user: remoteUser,
+      jwt
+    }
   } catch (e) {
     throw redirect(redirectPath)
   }
@@ -83,12 +86,12 @@ export async function assertUser(
 export async function assertAdmin(
   session: Session<SessionData>,
   redirectPath = "/",
-): Promise<DomainUser> {
-  const dbUser = await assertUser(session, redirectPath)
+): Promise<SessionData> {
+  const data = await assertUser(session, redirectPath)
 
-  if (dbUser.role !== "ADMIN") {
+  if (data.user.role !== "ADMIN") {
     throw redirect(redirectPath)
   }
 
-  return dbUser
+  return data
 }

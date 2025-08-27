@@ -35,7 +35,7 @@ export async function action({
   request,
 }: Route.ActionArgs): Promise<ActionResponse> {
   try {
-    const user = await getUserOrRedirect(request)
+    const { user } = await getUserOrRedirect(request)
 
     const formData = await request.formData()
 

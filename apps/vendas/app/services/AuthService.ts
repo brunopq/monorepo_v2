@@ -7,7 +7,7 @@ import { encryptPassword, verifyPassword } from "~/lib/hashing"
 import { db } from "~/db"
 import { sale, user, type User } from "~/db/schema"
 
-const remoteUserSchema = z.object({
+export const remoteUserSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   // passwordHash: z.string(),
@@ -27,7 +27,7 @@ export type DomainUser = Omit<User, "passwordHash"> & {
   role: "ADMIN" | "SELLER"
   accountActive: boolean
 }
-export type NewUser = Omit<DomainUser, "id">
+export type NewUser = Omit<DomainUser, "id" | "auauthId">
 export type LoginUser = {
   name: string
   password: string

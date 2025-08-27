@@ -20,7 +20,7 @@ const buttonVariants = cva(
       },
       variant: {
         default: "bg-primary-700 text-primary-50 hover:bg-primary-700/90",
-        destructive: "bg-red-600 text-zinc-50 hover:bg-red-600/90",
+        destructive: "bg-red-600 text-zinc-50 hover:bg-red-900/90",
         outline:
           "border border-primary-400 bg-transparent text-primary-700 hover:bg-primary-100 hover:text-primary-900",
         secondary: "bg-accent-600 text-accent-50 hover:bg-accent-600/80",
