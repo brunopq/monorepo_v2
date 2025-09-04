@@ -19,4 +19,8 @@ export type FieldMapping = {
      */
     field?: string
     mandatory?: boolean
+    /**
+     * Indicates whether the field mapping is included in the lead
+     */
+    visible: boolean
 }

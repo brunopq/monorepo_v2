@@ -40,7 +40,7 @@ const newListSchema = z.object({
     z.object({
       name: z.string().nonempty("Nome é obrigatório"),
       phoneNumber: z.string().nonempty("Telefone é obrigatório"),
-      cpf: z.string().nullable(),
+      cpf: z.string(),
       birthDate: z.iso.date().nullable(),
       state: z.string().nullable(),
       extra: z.record(z.string(), z.string()).nullable(),
@@ -202,14 +202,28 @@ function FilesInput({
   }
 
   const generateDefaultMappings = (headers: string[]): FieldMapping[] => {
-    return defaultFields.map((field) => ({
-      name: field,
-      field: headers.find(
-        (header) => header.trim().toLowerCase() === field.trim().toLowerCase(),
-      ),
-      // biome-ignore lint/suspicious/noExplicitAny: typescript gives an error but this is fine
-      mandatory: requiredFields.includes(field as any),
-    }))
+    return defaultFields
+      .map((field) => ({
+        name: field as string,
+        field: headers.find(
+          (header) =>
+            header.trim().toLowerCase() === field.trim().toLowerCase(),
+        ),
+        visible: true,
+        // biome-ignore lint/suspicious/noExplicitAny: typescript gives an error but this is fine
+        mandatory: requiredFields.includes(field as any),
+      }))
+      .concat(
+        headers
+          // biome-ignore lint/suspicious/noExplicitAny: typescript
+          .filter((h) => !defaultFields.includes(h as any))
+          .map((header) => ({
+            name: header,
+            field: header,
+            visible: true,
+            mandatory: false,
+          })),
+      )
   }
 
   const processFile = async (
@@ -515,7 +529,7 @@ function CreationDialog({ files, name, origin }: CreationDialogProps) {
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Tooltip.Root>
         <Dialog.Trigger asChild>
-          <Tooltip.Trigger className="ml-auto" disabled={false}>
+          <Tooltip.Trigger asChild className="ml-auto" disabled={false}>
             <Button disabled={!ok} type="button">
               Criar Lista
             </Button>
@@ -535,7 +549,6 @@ function CreationDialog({ files, name, origin }: CreationDialogProps) {
     </Dialog.Root>
   )
 }
-
 
 type CreationDialogContentProps = CreationDialogProps & {
   onSuccess: () => void
