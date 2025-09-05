@@ -202,28 +202,32 @@ function FilesInput({
   }
 
   const generateDefaultMappings = (headers: string[]): FieldMapping[] => {
-    return defaultFields
-      .map((field) => ({
-        name: field as string,
-        field: headers.find(
-          (header) =>
-            header.trim().toLowerCase() === field.trim().toLowerCase(),
-        ),
-        visible: true,
-        // biome-ignore lint/suspicious/noExplicitAny: typescript gives an error but this is fine
-        mandatory: requiredFields.includes(field as any),
-      }))
-      .concat(
-        headers
-          // biome-ignore lint/suspicious/noExplicitAny: typescript
-          .filter((h) => !defaultFields.includes(h as any))
-          .map((header) => ({
-            name: header,
-            field: header,
-            visible: true,
-            mandatory: false,
-          })),
-      )
+    return headers.map((h, i) => ({
+      id: i.toString(),
+      field: h,
+      name: h,
+      visible: true,
+    }))
+
+    // return defaultFields
+    //   .map((field) => ({
+    //     name: field as string,
+    //     field: headers.find(
+    //       (header) =>
+    //         header.trim().toLowerCase() === field.trim().toLowerCase(),
+    //     ),
+    //     visible: true,
+    //   }))
+    //   .concat(
+    //     headers
+    //       // biome-ignore lint/suspicious/noExplicitAny: typescript
+    //       .filter((h) => !defaultFields.includes(h as any))
+    //       .map((header) => ({
+    //         name: header,
+    //         field: header,
+    //         visible: true,
+    //       })),
+    //   )
   }
 
   const processFile = async (

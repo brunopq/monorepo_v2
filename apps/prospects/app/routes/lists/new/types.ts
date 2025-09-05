@@ -10,6 +10,7 @@ export type ProcessedFile = {
  * Represents a mapping between a field name and its corresponding file header.
  */
 export type FieldMapping = {
+    id: string
     /**
      * The name that the field will be displayed
      */
@@ -17,8 +18,7 @@ export type FieldMapping = {
     /**
      * The header in the file that corresponds to this field
      */
-    field?: string
-    mandatory?: boolean
+    field: string
     /**
      * Indicates whether the field mapping is included in the lead
      */
