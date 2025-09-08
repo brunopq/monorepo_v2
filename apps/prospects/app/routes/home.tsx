@@ -10,6 +10,7 @@ import ListService, { type DomainList } from "~/services/ListService"
 import SubListService from "~/services/SubListService"
 
 import { SubListStatusPill } from "~/components/SubListStatusPill"
+import { DeleteListConfirmationModal } from "~/components/DeleteListConfirmationModal"
 
 export function meta() {
   return [{ title: "Prospects" }]
@@ -194,10 +195,7 @@ function ListCard({ list }: ListCardProps) {
           Editar
           <PencilLineIcon className="size-4" />
         </Button>
-        <Button className="gap-2" variant="destructive" size="sm">
-          Excluir
-          <Trash2Icon className="size-4" />
-        </Button>
+        <DeleteListConfirmationModal listId={list.id} listName={list.name} />
       </div>
     </li>
   )

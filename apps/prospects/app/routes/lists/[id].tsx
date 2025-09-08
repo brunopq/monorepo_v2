@@ -1,5 +1,5 @@
 import type { Route } from "./+types/[id]"
-import { Form } from "react-router"
+import { Form, useNavigate, useLocation } from "react-router"
 import { Link, useFetcher, useLoaderData } from "react-router"
 import {
   ArrowLeftIcon,
@@ -8,11 +8,11 @@ import {
   Trash2Icon,
   PlusIcon,
 } from "lucide-react"
-import { Button, Dialog, Input, Select, Tooltip } from "iboti-ui"
+import { Button, Dialog, Input, Select, toast, Tooltip } from "iboti-ui"
 import { useEffect, useState } from "react"
 import { z } from "zod/v4"
 
-import { getUserOrRedirect } from "~/utils/authGuard"
+import { getAdminOrRedirect, getUserOrRedirect } from "~/utils/authGuard"
 import { cn, maxWidth } from "~/utils/styling"
 
 import ListService from "~/services/ListService"
@@ -20,6 +20,7 @@ import SubListService, { type SubListState } from "~/services/SubListService"
 
 import type { loader as usersLoader } from "~/routes/users"
 import type { action as subListAction } from "~/routes/subLists/[id]"
+import { DeleteListConfirmationModal } from "~/components/DeleteListConfirmationModal"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
@@ -42,20 +43,36 @@ const subListsSchema = z.array(
 )
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await getUserOrRedirect(request)
+  await getAdminOrRedirect(request)
   const listId = params.id
 
-  const json = await request.json()
-  const subListsData = subListsSchema.safeParse(json)
+  if (request.method === "POST") {
+    const json = await request.json()
+    const subListsData = subListsSchema.safeParse(json)
 
-  if (!subListsData.success) {
-    return {
-      ok: false,
-      errors: subListsData.error,
+    if (!subListsData.success) {
+      return {
+        ok: false,
+        errors: subListsData.error,
+      }
+    }
+
+    await ListService.makeSubLists(listId, subListsData.data)
+  } else if (request.method === "DELETE") {
+    try {
+      await ListService.delete(listId)
+      return {
+        ok: true,
+        method: "delete",
+      } as const
+    } catch (e) {
+      console.error(e)
+      return {
+        ok: false,
+        method: "delete",
+      } as const
     }
   }
-
-  await ListService.makeSubLists(listId, subListsData.data)
 }
 
 export default function Id({ loaderData }: Route.ComponentProps) {
@@ -119,10 +136,7 @@ export default function Id({ loaderData }: Route.ComponentProps) {
             </Link>
           </Button>
 
-          <Button icon="right" variant="destructive" size="sm" type="button">
-            Excluir
-            <Trash2Icon className="size-4" />
-          </Button>
+          <DeleteListConfirmationModal listId={list.id} listName={list.name} />
         </span>
       </header>
 
@@ -138,7 +152,6 @@ export default function Id({ loaderData }: Route.ComponentProps) {
     </div>
   )
 }
-
 
 function SubListsSection() {
   const { subLists, list } = useLoaderData<typeof loader>()

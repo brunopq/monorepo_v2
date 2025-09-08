@@ -21,8 +21,8 @@ class ListService {
     async getAll() {
         return await db.query.lists.findMany({
             with: {
-                subLists: true
-            }
+                subLists: true,
+            },
         })
     }
 
@@ -76,12 +76,14 @@ class ListService {
         await db.transaction(async (t) => {
             for (const sublist of sl) {
                 console.log("Creating sublist", sublist.assigneeId)
-                const [createdSl] = await t.insert(subLists)
+                const [createdSl] = await t
+                    .insert(subLists)
                     .values({
                         parentListId: listId,
                         assigneeId: sublist.assigneeId,
                         state: "new" as const,
-                    }).returning()
+                    })
+                    .returning()
 
                 console.log("Created sublist", createdSl.assigneeId)
 
@@ -105,6 +107,14 @@ class ListService {
                         )
                 }
             }
+        })
+    }
+
+    async delete(id: string) {
+        await db.transaction(async (t) => {
+            await t.delete(leads).where(eq(leads.listId, id))
+            await t.delete(subLists).where(eq(subLists.parentListId, id))
+            await t.delete(lists).where(eq(lists.id, id))
         })
     }
 }
