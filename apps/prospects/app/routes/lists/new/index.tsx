@@ -501,7 +501,7 @@ function canCreate({
   // }
 
   const fileWithEmptyMappings = files.find((f) =>
-    f.mappings.some((m) => !m.name),
+    f.mappings.some((m) => m.visible && !m.name),
   )
 
   if (fileWithEmptyMappings) {
