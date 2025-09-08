@@ -194,7 +194,11 @@ function SubListCard({ subList }: SubListCardProps) {
     <div key={subList.id} className="border-primary-500 border-l-[3px] pl-3">
       <header className="flex items-center justify-between">
         <span className="flex items-center gap-2">
-          <h3 className="font-semibold text-lg text-primary-800">Listinha</h3>
+          <h3 className="font-semibold text-lg text-primary-800">
+            <Link to={`/listinhas/${subList.id}`} className="hover:underline">
+              Listinha
+            </Link>
+          </h3>
           <SubListStatePill state={subList.state} />
         </span>
 

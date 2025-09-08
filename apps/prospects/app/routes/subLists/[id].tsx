@@ -45,11 +45,27 @@ export const loader = async ({ request, params }: Route.LoaderArgs) => {
     throw new Response("SubList not found", { status: 404 })
   }
 
-  return { user, subList }
+  if (user.role !== "ADMIN" && subList.assigneeId !== user.id) {
+    throw new Response("Forbidden", { status: 403 })
+  }
+
+  const canEdit = subList.assigneeId === user.id
+
+  return { user, subList, canEdit }
 }
 
 export const action = async ({ request, params }: Route.ActionArgs) => {
   const user = await getUserOrRedirect(request)
+
+  const subList = await SubListService.getWithLeads(params.id)
+
+  if (!subList) {
+    throw new Response("SubList not found", { status: 404 })
+  }
+
+  if (user.role !== "ADMIN" && subList.assigneeId !== user.id) {
+    throw new Response("Forbidden", { status: 403 })
+  }
 
   if (request.method === "PATCH") {
     const formData = await request.formData()
@@ -82,6 +98,7 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
       }
     }
   }
+  
   if (request.method === "DELETE") {
     try {
       await SubListService.delete(params.id)
@@ -97,7 +114,7 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
 }
 
 export default function SubListRoute({ loaderData }: Route.ComponentProps) {
-  const { user, subList } = loaderData
+  const { user, subList, canEdit } = loaderData
 
   const [showContacted, setShowContacted] = useState(true)
 
@@ -214,6 +231,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
         isActive={subList.state === "in_progress"}
         leads={leads}
         headers={headers}
+        canEdit={canEdit}
       />
     </div>
   )
@@ -223,11 +241,21 @@ type LeadsTableProps = {
   leads: DomainLeadWithInteractions[]
   headers: string[]
   isActive: boolean
+  canEdit: boolean
 }
 
-function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
+function LeadsTable({ headers, leads, isActive, canEdit }: LeadsTableProps) {
   return (
     <div className="sticky top-0 overflow-auto">
+      {!canEdit && (
+        <div className="mb-4 rounded-md border border-orange-300 bg-orange-50 p-3">
+          <p className="text-orange-800 text-sm">
+            Você não pode editar esta listinha pois ela está atribuída a outro
+            usuário.
+          </p>
+        </div>
+      )}
+
       <Table.Root className="space-y-2">
         <Table.Row>
           {headers.map((h) => (
@@ -246,6 +274,7 @@ function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
               isActive={isActive}
               headers={headers}
               lead={lead}
+              canEdit={canEdit}
             />
           ))}
         </Table.Body>
@@ -258,6 +287,7 @@ type LeadRowProps = {
   lead: DomainLeadWithInteractions
   headers: string[]
   isActive: boolean
+  canEdit: boolean
 }
 
 const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
@@ -306,7 +336,7 @@ const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
   }
 }
 
-function LeadRow({ lead, headers, isActive }: LeadRowProps) {
+function LeadRow({ lead, headers, isActive, canEdit }: LeadRowProps) {
   const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -361,17 +391,19 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
                 Interações
               </h3>
 
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowForm(!showForm)}
-                className="ml-2"
-              >
-                {showForm ? "Fechar formulário" : "Registrar nova interação"}
-              </Button>
+              {canEdit && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowForm(!showForm)}
+                  className="ml-2"
+                >
+                  {showForm ? "Fechar formulário" : "Registrar nova interação"}
+                </Button>
+              )}
             </header>
 
-            {showForm && (
+            {showForm && canEdit && (
               <NewInteractionForm
                 leadId={lead.id}
                 onClose={() => setShowForm(false)}
