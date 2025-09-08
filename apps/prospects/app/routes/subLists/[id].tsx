@@ -230,15 +230,6 @@ function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
     <div className="sticky top-0 overflow-auto">
       <Table.Root className="space-y-2">
         <Table.Row>
-          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
-            Nome
-          </Table.Head>
-          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
-            CPF
-          </Table.Head>
-          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
-            Telefone
-          </Table.Head>
           {headers.map((h) => (
             <Table.Head
               className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl"
@@ -350,9 +341,6 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
           leadRowStyles,
         )}
       >
-        <Table.Cell>{lead.name}</Table.Cell>
-        <Table.Cell>{cpf(lead.cpf)}</Table.Cell>
-        <Table.Cell>{phone(lead.phoneNumber)}</Table.Cell>
         {[...headers].map((h) => {
           let value = "-"
           if (lead.extra?.[h]) value = lead.extra[h]
