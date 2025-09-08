@@ -171,6 +171,7 @@ async function extractLeadsFromCSV(
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+
             complete: (results) => {
                 if (results.errors.length > 0)
                     return reject(new Error(`Erro ao processar o CSV: ${results.errors.join(", ")}`))
@@ -204,6 +205,8 @@ async function extractLeadsFromCSV(
                             })
                         }
                     }
+
+                    if (Object.values(lead).every(v => v.trim() === '')) continue
 
                     leads.push({
                         listId: "", // Será atribuído posteriormente
@@ -285,6 +288,10 @@ async function extractLeadsFromExcel(
                             })
                         }
                     }
+
+                    // If all values in lead are empty, skip this lead
+                    if (Object.values(lead).every(v => v.trim() === ""))
+                        continue
 
                     leads.push({
                         listId: "", // Será atribuído posteriormente
