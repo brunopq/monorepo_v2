@@ -30,16 +30,20 @@ export const lists = pgTable('lists', {
     size: integer().notNull(),
 })
 
-// all leads must have name and phone number, at least
+/** 
+ *  ~All leads must have name and phone number, at least~
+ * 
+ * All leads are a big jsonb blob, it is up to the user to provide the necessary fields
+ */
 export const leads = pgTable('leads', {
     ...baseTable,
     listId: text().references(() => lists.id).notNull(),
     subListId: text().references(() => subLists.id),
-    name: text().notNull(),
-    phoneNumber: text().notNull(),
-    cpf: char({ length: 11 }).notNull(),
-    birthDate: date({ mode: 'string' }),
-    state: char({ length: 2 }),
+    // name: text().notNull(),
+    // phoneNumber: text().notNull(),
+    // cpf: char({ length: 11 }).notNull(),
+    // birthDate: date({ mode: 'string' }),
+    // state: char({ length: 2 }),
     extraInfo: jsonb(),
 })
 

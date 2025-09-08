@@ -26,7 +26,6 @@ import {
 } from "./fileUtils"
 import { FieldsMappingModal } from "./FieldsMappingModal"
 import type { FieldMapping, ProcessedFile } from "./types"
-import { defaultFields, requiredFields } from "./constants"
 
 export async function loader({ request }: Route.LoaderArgs) {
   await getUserOrRedirect(request)
@@ -38,12 +37,7 @@ const newListSchema = z.object({
   origin: z.string().nonempty("Origem é obrigatória"),
   leads: z.array(
     z.object({
-      name: z.string().nonempty("Nome é obrigatório"),
-      phoneNumber: z.string().nonempty("Telefone é obrigatório"),
-      cpf: z.string(),
-      birthDate: z.iso.date().nullable(),
-      state: z.string().nullable(),
-      extra: z.record(z.string(), z.string()).nullable(),
+      extra: z.record(z.string(), z.string()),
     }),
   ),
 })
@@ -65,21 +59,30 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
 
-  const list = await ListService.create({
-    createdBy: user,
-    name: data.name,
-    origin: data.origin,
-    size: data.leads.length,
-  })
+  try {
+    const list = await ListService.create({
+      createdBy: user,
+      name: data.name,
+      origin: data.origin,
+      size: data.leads.length,
+    })
 
-  const leads = await LeadService.createMany(
-    data.leads.map((l) => ({ ...l, listId: list.id })),
-  )
+    const leads = await LeadService.createMany(
+      data.leads.map((l) => ({ ...l, listId: list.id, subListId: null })),
+    )
 
-  return {
-    ok: true as const,
-    list: list,
-    createdLeads: leads.length,
+    return {
+      ok: true as const,
+      list: list,
+      createdLeads: leads.length,
+    }
+  } catch (e) {
+    console.error("Error creating list or leads:", e)
+    return {
+      ok: false as const,
+      error: "Erro ao criar a lista ou os leads",
+      issues: [],
+    }
   }
 }
 
@@ -481,24 +484,24 @@ function canCreate({
     }
   }
 
-  const fileWithoutRequiredFields = files.find(
-    (f) =>
-      !requiredFields.every((field) =>
-        f.mappings.some((m) => m.name === field && m.field),
-      ),
-  )
+  // const fileWithoutRequiredFields = files.find(
+  //   (f) =>
+  //     !requiredFields.every((field) =>
+  //       f.mappings.some((m) => m.name === field && m.field),
+  //     ),
+  // )
 
-  if (fileWithoutRequiredFields) {
-    return {
-      ok: false,
-      reason: `O arquivo "${fileWithoutRequiredFields.file.name}" deve conter os campos obrigatórios: ${requiredFields.join(
-        ", ",
-      )}`,
-    }
-  }
+  // if (fileWithoutRequiredFields) {
+  //   return {
+  //     ok: false,
+  //     reason: `O arquivo "${fileWithoutRequiredFields.file.name}" deve conter os campos obrigatórios: ${requiredFields.join(
+  //       ", ",
+  //     )}`,
+  //   }
+  // }
 
   const fileWithEmptyMappings = files.find((f) =>
-    f.mappings.some((m) => !m.field),
+    f.mappings.some((m) => !m.name),
   )
 
   if (fileWithEmptyMappings) {
@@ -508,19 +511,19 @@ function canCreate({
     }
   }
 
-  const fileWithInvalidMappings = files.find((f) =>
-    f.mappings.some(
-      // biome-ignore lint/style/noNonNullAssertion: was verified in the previous checks
-      (m) => !f.headers.includes(m.field!),
-    ),
-  )
+  // const fileWithInvalidMappings = files.find((f) =>
+  //   f.mappings.some(
+  //     // biome-ignore lint/style/noNonNullAssertion: was verified in the previous checks
+  //     (m) => !f.headers.includes(m.field!),
+  //   ),
+  // )
 
-  if (fileWithInvalidMappings) {
-    return {
-      ok: false,
-      reason: `O arquivo "${fileWithInvalidMappings.file.name}" contém mapeamentos para colunas que não existem.`,
-    }
-  }
+  // if (fileWithInvalidMappings) {
+  //   return {
+  //     ok: false,
+  //     reason: `O arquivo "${fileWithInvalidMappings.file.name}" contém mapeamentos para colunas que não existem.`,
+  //   }
+  // }
 
   return { ok: true }
 }
@@ -655,6 +658,12 @@ function CreationDialogContent({
       })
       setProcessedFiles([])
       onSuccess()
+    } else {
+      toast({
+        title: "Erro ao criar a lista",
+        description: fetcher.data.error || "Ocorreu um erro ao criar a lista.",
+        variant: "destructive",
+      })
     }
   }, [fetcher.data])
 
@@ -745,19 +754,22 @@ function ProcessedFileCard({ file }: ProcessedFileCardProps) {
           {/* Mappings Table */}
           <div className="grid w-full grid-cols-[auto_auto] gap-x-4 border border-zinc-300 bg-zinc-100 text-sm text-zinc-600">
             <span className="col-span-2 grid grid-cols-subgrid bg-primary-50 px-1 font-semibold text-zinc-800">
-              <span>Campo</span>
               <span>Coluna</span>
+              <span>Campo</span>
             </span>
             <hr className="col-span-2 border-zinc-300" />
-            {file.mappings.map((m) => (
-              <span
-                className="col-span-2 grid grid-cols-subgrid px-1"
-                key={m.name}
-              >
-                <span>{m.name}</span>
-                <span>{m.field}</span>
-              </span>
-            ))}
+            {file.mappings.map(
+              (m) =>
+                m.visible && (
+                  <span
+                    className="col-span-2 grid grid-cols-subgrid px-1"
+                    key={m.name}
+                  >
+                    <span>{m.field}</span>
+                    <span>{m.name}</span>
+                  </span>
+                ),
+            )}
           </div>
 
           <div className="mt-2">

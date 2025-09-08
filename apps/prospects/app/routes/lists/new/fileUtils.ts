@@ -190,14 +190,14 @@ async function extractLeadsFromCSV(
                     line++
                     const lead: Record<string, string> = {}
 
-                    for (const { name, field } of mappings) {
-                        if (!field) continue
+                    for (const { name, field, visible } of mappings) {
+                        if (!field || !name || !visible) continue
 
                         try {
                             lead[name] = row[field]
                         } catch (error) {
                             errors.push({
-                                message: `Erro ao mapear campo "${name}"`,
+                                message: `Erro ao mapear campo "${field}" -> "${name}"`,
                                 fileName: file.name,
                                 line,
                                 row,
@@ -205,25 +205,9 @@ async function extractLeadsFromCSV(
                         }
                     }
 
-                    const isValidLead = lead.Nome && lead.Telefone && lead.CPF
-
-                    if (!isValidLead) {
-                        errors.push({
-                            message: "Lead inválido: Nome, Telefone ou CPF não estão presentes.",
-                            fileName: file.name,
-                            line,
-                            row,
-                        })
-                        continue
-                    }
-
                     leads.push({
-                        name: lead.Nome,
-                        phoneNumber: lead.Telefone,
-                        cpf: lead.CPF,
-                        birthDate: lead.DataDeNascimento || null,
-                        state: lead.Estado || null,
                         listId: "", // Será atribuído posteriormente
+                        subListId: null,
                         extra: lead,
                     })
                 }
@@ -242,7 +226,86 @@ async function extractLeadsFromExcel(
     file: File,
     mappings: FieldMapping[]
 ): Promise<{ leads: NewDomainLead[], errors: ParsingError[] }> {
-    throw new Error("Função não implementada: extractLeadsFromExcel")
+    return new Promise((resolve, reject) => {
+        const leads: NewDomainLead[] = []
+        const errors: ParsingError[] = []
+        const reader = new FileReader()
+
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer)
+                const workbook = XLSX.read(data, { type: "array" })
+
+                // Get the first worksheet
+                const firstSheetName = workbook.SheetNames[0]
+                const worksheet = workbook.Sheets[firstSheetName]
+
+                // Convert to JSON with headers
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+
+                if (!jsonData || jsonData.length === 0) {
+                    return reject(new Error("Nenhum dado encontrado no arquivo Excel."))
+                }
+
+                // First row should be headers
+                const headers = jsonData[0] as string[]
+                const dataRows = jsonData.slice(1)
+
+                let line = 1 // Start from 1 to account for header row
+
+                for (const rowArray of dataRows) {
+                    line++
+
+                    // Skip empty rows
+                    if (!Array.isArray(rowArray) || rowArray.every(cell =>
+                        cell === null || cell === undefined || cell === "")) {
+                        continue
+                    }
+
+                    // Convert array row to object using headers
+                    const row: Record<string, string> = {}
+                    headers.forEach((header, index) => {
+                        const cellValue = rowArray[index]
+                        row[header] = cellValue !== null && cellValue !== undefined ? String(cellValue) : ""
+                    })
+
+                    const lead: Record<string, string> = {}
+
+                    for (const { name, field, visible } of mappings) {
+                        if (!field || !name || !visible) continue
+
+                        try {
+                            lead[name] = row[field] || ""
+                        } catch (error) {
+                            errors.push({
+                                message: `Erro ao mapear campo "${field}" -> "${name}"`,
+                                fileName: file.name,
+                                line,
+                                row,
+                            })
+                        }
+                    }
+
+                    leads.push({
+                        listId: "", // Será atribuído posteriormente
+                        subListId: null,
+                        extra: lead,
+                    })
+                }
+
+                resolve({ leads, errors })
+            } catch (error) {
+                console.error("Erro ao processar Excel:", error)
+                reject(error)
+            }
+        }
+
+        reader.onerror = () => {
+            reject(new Error("Falha ao ler o arquivo Excel"))
+        }
+
+        reader.readAsArrayBuffer(file)
+    })
 }
 
 export async function extractLeadsFromFile(

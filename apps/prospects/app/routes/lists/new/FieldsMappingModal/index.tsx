@@ -73,8 +73,8 @@ export function FieldsMappingModal({
                 <thead>
                   <tr className="bg-primary-50 font-semibold text-zinc-800">
                     <th className="w-0 px-2 py-1">{/* visibility toggle */}</th>
-                    <th className="w-0 px-2 py-1 text-left">Campo</th>
-                    <th className="px-2 py-1 text-left">Coluna</th>
+                    <th className="w-0 px-2 py-1 text-left">Coluna</th>
+                    <th className="px-2 py-1 text-left">Campo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -140,7 +140,7 @@ const AIMapping = memo(
     return (
       <tr
         data-visible={mapping.visible}
-        className="border-zinc-200 border-b data-[visible=false]:opacity-50"
+        className="border-zinc-200 border-b transition-opacity duration-75 data-[visible=false]:opacity-50"
       >
         <td className="px-2 py-1 align-middle">
           <button

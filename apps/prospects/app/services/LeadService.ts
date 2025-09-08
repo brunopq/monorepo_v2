@@ -8,14 +8,14 @@ type NewDbLead = typeof leads.$inferInsert
 
 export type DomainLead = {
     id: string
-    name: string
+    // name: string
     listId: string
-    // subListId: string | null;
-    phoneNumber: string
-    cpf: string
-    birthDate: string | null
-    state: string | null
-    extra: Record<string, string> | null
+    subListId: string | null;
+    // phoneNumber: string
+    // cpf: string
+    // birthDate: string | null
+    // state: string | null
+    extra: Record<string, string>
 }
 
 export type DomainLeadWithInteractions = DomainLead & {
@@ -30,20 +30,10 @@ class LeadService {
     async createMany(newLeads: NewDomainLead[]): Promise<DomainLead[]> {
         console.log(`creating ${newLeads.length} leads`)
 
-        const dbLeads: NewDbLead[] = newLeads.map((l) => {
-            const extra = { ...l.extra }
-            // biome-ignore lint/complexity/noForEach: <explanation>
-            Object.entries(extra).forEach(([k, v]) => {
-                if (k in ["Nome", "CPF", "Telefone", "Data de Nascimento", "Estado"]) {
-                    delete extra[k]
-                }
-            })
-
-            return {
-                ...l,
-                extraInfo: extra,
-            }
-        })
+        const dbLeads: NewDbLead[] = newLeads.map((l) => ({
+            ...l,
+            extraInfo: l.extra,
+        }))
 
         const createdLeads: DbLead[] = []
 
