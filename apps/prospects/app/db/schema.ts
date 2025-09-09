@@ -70,6 +70,15 @@ export const leadInteractions = pgTable('lead_interactions', {
     notes: text(),
 })
 
+export const reminders = pgTable('reminders', {
+    ...baseTable,
+    leadId: text().references(() => leads.id).notNull(),
+    sellerId: text().references(() => users.id).notNull(),
+    createdAt: timestamp({ mode: 'date', withTimezone: true }).notNull(),
+    remindAt: timestamp({ mode: 'date', withTimezone: true }).notNull(),
+    message: text().notNull(),
+})
+
 export const listRelations = relations(lists, ({ one, many }) => ({
     createdBy: one(users, {
         fields: [lists.creatorId],

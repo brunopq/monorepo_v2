@@ -1,4 +1,5 @@
 import { z } from "zod/v4"
+import { eq } from "drizzle-orm"
 
 import {
     interactionStatuses,
@@ -7,7 +8,6 @@ import {
 
 import { db } from "../db"
 import { leadInteractions } from "../db/schema"
-import { eq } from "drizzle-orm"
 
 export const interactionTypeSchema = z.enum(interactionTypes)
 export const interactionStatusSchema = z.enum(interactionStatuses)

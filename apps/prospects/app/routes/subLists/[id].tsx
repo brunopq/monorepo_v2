@@ -454,6 +454,13 @@ const getInteractionTypeIcon = (type: string) => {
   }
 }
 
+const reminderOptions = [
+  { value: "disabled", label: "Desativado", default: true },
+  { value: "2_day", label: "Em 1 dia" },
+  { value: "3_days", label: "Em 2 dias" },
+  { value: "2_week", label: "Em 1 semana" },
+]
+
 function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
   return (
     <Form
@@ -461,9 +468,9 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
       method="post"
       action={`/leads/${leadId}/interactions`}
       onSubmit={onClose}
-      className="inset-shadow-accent-600/20 inset-shadow-xs mb-2 rounded-md bg-zinc-200 p-2 shadow-accent-600/20 shadow-xs"
+      className="@container inset-shadow-accent-600/20 inset-shadow-xs mb-2 rounded-md bg-zinc-200 p-2 shadow-accent-600/20 shadow-xs"
     >
-      <div className="grid grid-cols-[1fr_1fr_auto] grid-rows-2 gap-1">
+      <div className="grid @5xl:grid-cols-[1fr_1fr_auto] grid-cols-1 @5xl:grid-rows-2 grid-rows-4 gap-1">
         <Select.Root name="interactionType">
           <Select.Trigger className="row-start-1 text-sm">
             <Select.Value placeholder="Selecione o canal da interação" />
@@ -496,11 +503,32 @@ function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {
         <Input
           name="notes"
           placeholder="Notas (opcional)"
-          className="row-span-2 text-sm"
+          className="@5xl:row-start-1 row-start-3 text-sm"
         />
 
+        <div className="@5xl:row-start-2 row-start-4 flex items-center gap-3 rounded-md border border-zinc-300 bg-zinc-100 px-3 py-2 shadow">
+          <label className="font-medium text-sm text-zinc-700">Lembrete</label>
+          <fieldset className="flex gap-1">
+            {reminderOptions.map((option) => (
+              <label
+                key={option.value}
+                className="cursor-pointer select-none text-nowrap rounded-md px-2 py-0.5 text-xs transition-colors hover:bg-zinc-300 has-checked:bg-accent-300/75 has-checked:text-accent-950"
+              >
+                <input
+                  name="reminder"
+                  className="hidden"
+                  type="radio"
+                  defaultChecked={option.default}
+                  value={option.value}
+                />
+                {option.label}
+              </label>
+            ))}
+          </fieldset>
+        </div>
+
         <Button
-          className="col-start-3 row-span-2 row-start-1 ml-2 self-center"
+          className="row-span-full row-start-1 ml-2 self-center"
           type="submit"
         >
           Registrar interação
