@@ -10,7 +10,7 @@ import {
   MailIcon,
   MoreHorizontalIcon,
 } from "lucide-react"
-import { Form, Link, useFetcher } from "react-router"
+import { Form, Link, useFetcher, useLoaderData } from "react-router"
 import { Button, Table, Input, Select, Checkbox } from "iboti-ui"
 
 import {
@@ -162,6 +162,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 
               <SubListStatusPill status={subList.state} />
             </span>
+            {subList.assignee && <p>Atribuído a: {subList.assignee.name}</p>}
             <p>Leads: {subList.leadsCount}</p>
           </div>
         </div>
@@ -231,7 +232,6 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
         isActive={subList.state === "in_progress"}
         leads={leads}
         headers={headers}
-        canEdit={canEdit}
       />
     </div>
   )
@@ -241,14 +241,15 @@ type LeadsTableProps = {
   leads: DomainLeadWithInteractions[]
   headers: string[]
   isActive: boolean
-  canEdit: boolean
 }
 
-function LeadsTable({ headers, leads, isActive, canEdit }: LeadsTableProps) {
+function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
+  const { canEdit } = useLoaderData<typeof loader>()
+
   return (
-    <div className="sticky top-0 overflow-auto">
+    <div className="sticky left-0 overflow-auto">
       {!canEdit && (
-        <div className="mb-4 rounded-md border border-orange-300 bg-orange-50 p-3">
+        <div className="sticky left-0 mb-4 rounded-md border border-orange-300 bg-orange-50 p-3">
           <p className="text-orange-800 text-sm">
             Você não pode editar esta listinha pois ela está atribuída a outro
             usuário.
@@ -274,7 +275,6 @@ function LeadsTable({ headers, leads, isActive, canEdit }: LeadsTableProps) {
               isActive={isActive}
               headers={headers}
               lead={lead}
-              canEdit={canEdit}
             />
           ))}
         </Table.Body>
@@ -287,7 +287,6 @@ type LeadRowProps = {
   lead: DomainLeadWithInteractions
   headers: string[]
   isActive: boolean
-  canEdit: boolean
 }
 
 const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
@@ -336,7 +335,9 @@ const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
   }
 }
 
-function LeadRow({ lead, headers, isActive, canEdit }: LeadRowProps) {
+function LeadRow({ lead, headers, isActive }: LeadRowProps) {
+  const { canEdit } = useLoaderData<typeof loader>()
+
   const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -558,6 +559,7 @@ function LeadInteractionRow({
   leadId,
   sellerName,
 }: LeadInteractionRowProps) {
+  const { canEdit } = useLoaderData<typeof loader>()
   const deleteFetcher = useFetcher<typeof interactionAction>()
   console.log(interaction.id)
 
@@ -614,24 +616,26 @@ function LeadInteractionRow({
           )}
         </div>
 
-        <div className="space-x-1">
-          <Button
-            size="icon"
-            className="size-auto p-2 text-zinc-500"
-            variant="ghost"
-            onClick={handleEdit}
-          >
-            <PencilLineIcon className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            className="size-auto p-2 text-zinc-500"
-            variant="ghost"
-            onClick={handleDelete}
-          >
-            <Trash2Icon className="size-4" />
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="space-x-1">
+            <Button
+              size="icon"
+              className="size-auto p-2 text-zinc-500"
+              variant="ghost"
+              onClick={handleEdit}
+            >
+              <PencilLineIcon className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              className="size-auto p-2 text-zinc-500"
+              variant="ghost"
+              onClick={handleDelete}
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
