@@ -162,8 +162,28 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 
               <SubListStatusPill status={subList.state} />
             </span>
-            {subList.assignee && <p>Atribuído a: {subList.assignee.name}</p>}
-            <p>Leads: {subList.leadsCount}</p>
+            <div className="columns-3 text-sm">
+              {subList.assignee && (
+                <p>
+                  Atribuído a:{" "}
+                  <strong className="text-primary-600">
+                    {subList.assignee.name}
+                  </strong>
+                </p>
+              )}
+              <p>
+                Leads:{" "}
+                <strong className="text-primary-600">
+                  {subList.leadsCount}
+                </strong>
+              </p>
+              <p>
+                Leads contatados:{" "}
+                <strong className="text-primary-600">
+                  {subList.contactedLeadsCount}
+                </strong>
+              </p>
+            </div>
           </div>
         </div>
 
