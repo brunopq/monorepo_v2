@@ -338,18 +338,18 @@ const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
   // Return appropriate background color based on best status
   switch (bestStatus) {
     case "converted":
-      return "bg-green-50 hover:bg-green-100 border-l-4 border-l-green-400  data-[open=true]:bg-green-100"
+      return "bg-green-200/75 hover:bg-green-200 border-l-4 border-l-green-400  data-[open=true]:bg-green-200"
     case "interested":
-      return "bg-blue-50 hover:bg-blue-100 border-l-4 border-l-blue-400 data-[open=true]:bg-blue-100"
+      return "bg-blue-200/75 hover:bg-blue-200 border-l-4 border-l-blue-400 data-[open=true]:bg-blue-200"
     case "waiting_response":
-      return "bg-lime-50 hover:bg-lime-100 border-l-4 border-l-lime-400 data-[open=true]:bg-lime-100"
+      return "bg-lime-200/75 hover:bg-lime-200 border-l-4 border-l-lime-400 data-[open=true]:bg-lime-200"
     case "no_response":
     case "no_interest":
     case "lost":
-      return "bg-red-50 hover:bg-red-100 border-l-4 border-l-red-400 data-[open=true]:bg-red-100"
+      return "bg-red-200/75 hover:bg-red-200 border-l-4 border-l-red-400 data-[open=true]:bg-red-200"
     case "not_reachable":
     case "wrong_person":
-      return "bg-orange-50 hover:bg-orange-100 border-l-4 border-l-orange-400 data-[open=true]:bg-orange-100"
+      return "bg-orange-200/75 hover:bg-orange-200 border-l-4 border-l-orange-400 data-[open=true]:bg-orange-200"
     default:
       return "bg-zinc-50 hover:bg-zinc-100"
   }
