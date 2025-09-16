@@ -57,14 +57,7 @@ class SubListService {
 
         const slsWithCounts = await Promise.all(
             sls.map(async (sl) => {
-                const [{ contactedLeadsCount, leadsCount }] = await db
-                    .select({
-                        leadsCount: sql`count(distinct ${leads.id}) as leads_count`,
-                        contactedLeadsCount: sql`count(distinct ${leadInteractions.leadId}) as contacted_leads_count`,
-                    })
-                    .from(leads)
-                    .leftJoin(leadInteractions, eq(leads.id, leadInteractions.leadId))
-                    .where(eq(leads.subListId, sl.id))
+                const { contactedLeadsCount, leadsCount } = await this.countLeads(sl.id)
 
                 const ranked = db.$with("ranked_interactions").as(
                     db
@@ -110,8 +103,6 @@ class SubListService {
                     .groupBy(ranked.status)
                     .orderBy(sql`MIN(${ranked.status_rank})`)
 
-                console.log("result", result)
-
                 const record = Object.fromEntries(
                     interactionStatuses.map((status) => [
                         status,
@@ -126,6 +117,22 @@ class SubListService {
         return slsWithCounts
     }
 
+    async countLeads(subListId: string) {
+        const [{ contactedLeadsCount, leadsCount }] = await db
+            .select({
+                leadsCount: sql`count(distinct ${leads.id}) as leads_count`,
+                contactedLeadsCount: sql`count(distinct ${leadInteractions.leadId}) as contacted_leads_count`,
+            })
+            .from(leads)
+            .leftJoin(leadInteractions, eq(leads.id, leadInteractions.leadId))
+            .where(eq(leads.subListId, subListId))
+
+        return {
+            leadsCount,
+            contactedLeadsCount
+        }
+    }
+
     async getWithLeads(id: string) {
         const subList = await db.query.subLists.findFirst({
             where: (subLists, { eq }) => eq(subLists.id, id),
@@ -135,6 +142,7 @@ class SubListService {
                     with: {
                         interactions: true,
                     },
+                    orderBy: (leads, { asc }) => asc(leads.id),
                 },
             },
         })
@@ -143,9 +151,9 @@ class SubListService {
             return null
         }
 
-        const leadsCount = await db.$count(leads, eq(leads.subListId, subList.id))
+        const { contactedLeadsCount, leadsCount } = await this.countLeads(id)
 
-        return { ...subList, leadsCount }
+        return { ...subList, leadsCount, contactedLeadsCount }
     }
 
     async assign(id: string, assigneeId: string) {

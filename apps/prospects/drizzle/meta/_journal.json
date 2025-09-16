@@ -43,6 +43,41 @@
       "when": 1757441088875,
       "tag": "0005_many_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1758034408629,
+      "tag": "0006_gray_kingpin",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758040839542,
+      "tag": "0007_update_lead_serial_id_relations",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1758041231566,
+      "tag": "0008_simple_wither",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1758041913553,
+      "tag": "0009_complete_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1758041972978,
+      "tag": "0010_lean_stardust",
+      "breakpoints": true
     }
   ]
 }
