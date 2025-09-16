@@ -9,9 +9,21 @@ import {
   PhoneIcon,
   MailIcon,
   MoreHorizontalIcon,
+  ClockIcon,
+  CalendarIcon,
+  AlertTriangleIcon,
+  CheckCircleIcon,
 } from "lucide-react"
 import { Form, Link, useFetcher, useLoaderData } from "react-router"
 import { Button, Table, Input, Select, Checkbox } from "iboti-ui"
+import {
+  format,
+  formatDistanceToNow,
+  isPast,
+  isToday,
+  isTomorrow,
+} from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 import {
   interactionStatuses,
@@ -30,11 +42,15 @@ import SubListService, {
   type SubListState,
 } from "~/services/SubListService"
 import type { DomainInteraction } from "~/services/InteractionService"
-import type { DomainLeadWithInteractions } from "~/services/LeadService"
+import type {
+  CompleteDomainLead,
+  DomainLeadWithInteractions,
+} from "~/services/LeadService"
 
 import type { action as interactionAction } from "~/routes/leads/[id]/interactions/[id]"
 
 import { SubListStatusPill } from "~/components/SubListStatusPill"
+import type { DomainReminder } from "~/services/ReminderService"
 
 export const loader = async ({ request, params }: Route.LoaderArgs) => {
   const user = await getUserOrRedirect(request, "/login")
@@ -98,7 +114,7 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
       }
     }
   }
-  
+
   if (request.method === "DELETE") {
     try {
       await SubListService.delete(params.id)
@@ -126,7 +142,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 
   const headers = [...headersSet]
 
-  const leads: DomainLeadWithInteractions[] = (
+  const leads: CompleteDomainLead[] = (
     showContacted
       ? subList.leads
       : subList.leads.filter((l) => l.interactions.length === 0)
@@ -258,7 +274,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
 }
 
 type LeadsTableProps = {
-  leads: DomainLeadWithInteractions[]
+  leads: CompleteDomainLead[]
   headers: string[]
   isActive: boolean
 }
@@ -304,7 +320,7 @@ function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
 }
 
 type LeadRowProps = {
-  lead: DomainLeadWithInteractions
+  lead: CompleteDomainLead
   headers: string[]
   isActive: boolean
 }
@@ -376,6 +392,8 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
 
   const leadRowStyles = getLeadRowStyles(lead)
 
+  const hasReminders = lead.reminders && lead.reminders.length > 0
+
   return (
     <>
       <Table.Row
@@ -407,48 +425,164 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
       >
         <Table.Cell colSpan={9999} className="p-0">
           <div className="sticky left-0 w-[calc(100vw-2rem-1px)] p-4">
-            <header className="mb-2 flex items-center justify-between">
-              <h3 className="font-semibold text-lg text-primary-800">
-                Interações
-              </h3>
+            <section>
+              <header className="mb-2 flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-primary-800">
+                  Interações
+                </h3>
 
-              {canEdit && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowForm(!showForm)}
-                  className="ml-2"
-                >
-                  {showForm ? "Fechar formulário" : "Registrar nova interação"}
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowForm(!showForm)}
+                    className="ml-2"
+                  >
+                    {showForm
+                      ? "Fechar formulário"
+                      : "Registrar nova interação"}
+                  </Button>
+                )}
+              </header>
+
+              {showForm && canEdit && (
+                <NewInteractionForm
+                  leadId={lead.id}
+                  onClose={() => setShowForm(false)}
+                />
               )}
-            </header>
 
-            {showForm && canEdit && (
-              <NewInteractionForm
-                leadId={lead.id}
-                onClose={() => setShowForm(false)}
-              />
+              <div className="space-y-2">
+                {lead.interactions.length > 0 ? (
+                  lead.interactions.map((interaction) => (
+                    <LeadInteractionRow
+                      key={interaction.id}
+                      interaction={interaction}
+                      leadId={lead.id}
+                      sellerName={interaction.sellerId}
+                    />
+                  ))
+                ) : (
+                  <p>Nenhuma interação registrada.</p>
+                )}
+              </div>
+            </section>
+
+            {hasReminders && (
+              <section>
+                <header className="mt-4 mb-2 flex items-center justify-between">
+                  <h3 className="font-semibold text-lg text-primary-800">
+                    Lembretes
+                  </h3>
+                </header>
+                {lead.reminders.map((r) => (
+                  <ReminderCard key={r.id} reminder={r} />
+                ))}
+              </section>
             )}
-
-            <div className="space-y-2">
-              {lead.interactions.length > 0 ? (
-                lead.interactions.map((interaction) => (
-                  <LeadInteractionRow
-                    key={interaction.id}
-                    interaction={interaction}
-                    leadId={lead.id}
-                    sellerName={interaction.sellerId}
-                  />
-                ))
-              ) : (
-                <p>Nenhuma interação registrada.</p>
-              )}
-            </div>
           </div>
         </Table.Cell>
       </Table.Row>
     </>
+  )
+}
+
+type ReminderCardProps = {
+  reminder: DomainReminder
+}
+
+function ReminderCard({ reminder }: ReminderCardProps) {
+  const remindDate = new Date(reminder.remindAt)
+  const createdDate = new Date(reminder.createdAt)
+  const isPassed = isPast(remindDate)
+  const isDueToday = isToday(remindDate)
+  const isDueTomorrow = isTomorrow(remindDate)
+
+  const getStatusInfo = () => {
+    if (isPassed) {
+      return {
+        icon: <AlertTriangleIcon className="size-4 text-zinc-600" />,
+        status: "Passado",
+        statusColor: "text-zinc-700",
+        bgColor: "bg-zinc-50 border-zinc-200",
+        timeText: `Passou há ${formatDistanceToNow(remindDate, { locale: ptBR })}`,
+        timeColor: "text-zinc-600",
+      }
+    }
+
+    if (isDueToday) {
+      return {
+        icon: <ClockIcon className="size-4 text-orange-600" />,
+        status: "Hoje",
+        statusColor: "text-orange-700",
+        bgColor: "bg-orange-50 border-orange-300",
+        timeText: `Hoje às ${format(remindDate, "HH:mm")}`,
+        timeColor: "text-orange-600",
+      }
+    }
+
+    if (isDueTomorrow) {
+      return {
+        icon: <CalendarIcon className="size-4 text-blue-600" />,
+        status: "Amanhã",
+        statusColor: "text-blue-700",
+        bgColor: "bg-blue-50 border-blue-300",
+        timeText: `Amanhã às ${format(remindDate, "HH:mm")}`,
+        timeColor: "text-blue-600",
+      }
+    }
+
+    return {
+      icon: <CalendarIcon className="size-4 text-green-600" />,
+      status: "Agendado",
+      statusColor: "text-green-700",
+      bgColor: "bg-green-50 border-green-300",
+      timeText: `${format(remindDate, "dd/MM/yyyy 'às' HH:mm")}`,
+      timeColor: "text-green-600",
+    }
+  }
+
+  const statusInfo = getStatusInfo()
+
+  return (
+    <div className={cn("rounded-lg border p-2 shadow-sm", statusInfo.bgColor)}>
+      {/* Header with status */}
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {statusInfo.icon}
+          <span className={cn("font-semibold text-sm", statusInfo.statusColor)}>
+            {statusInfo.status}
+          </span>
+        </div>
+        <span className={cn("font-medium text-xs", statusInfo.timeColor)}>
+          {statusInfo.timeText}
+        </span>
+      </div>
+
+      {/* Message */}
+      <div className="mb-2">
+        <p className="text-gray-800 text-sm leading-relaxed">
+          {reminder.message}
+        </p>
+      </div>
+
+      {/* Footer with creation info */}
+      <div className="flex items-center justify-between border-gray-200 border-t pt-2">
+        <span className="text-gray-500 text-xs">
+          Criado em {format(createdDate, "dd/MM/yyyy 'às' HH:mm")}
+        </span>
+        {isPassed && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-zinc-300 bg-zinc-100 px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-200"
+          >
+            <CheckCircleIcon className="mr-1 size-3" />
+            Marcar como concluído
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -476,9 +610,9 @@ const getInteractionTypeIcon = (type: string) => {
 
 const reminderOptions = [
   { value: "disabled", label: "Desativado", default: true },
-  { value: "2_day", label: "Em 1 dia" },
-  { value: "3_days", label: "Em 2 dias" },
-  { value: "2_week", label: "Em 1 semana" },
+  { value: "1_day", label: "Em 1 dia" },
+  { value: "2_days", label: "Em 2 dias" },
+  { value: "1_week", label: "Em 1 semana" },
 ]
 
 function NewInteractionForm({ leadId, onClose }: NewInteractionFormProps) {

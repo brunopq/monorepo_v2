@@ -42,6 +42,7 @@ function generateReminderMessage(
 }
 
 export const action = async ({ request, params }: Route.ActionArgs) => {
+  console.log("Creating interaction...")
   const user = await getUserOrRedirect(request)
 
   const formData = Object.fromEntries(await request.formData())
@@ -70,6 +71,8 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
     }
   }
 
+  console.log("Creating interaction with data:", data)
+
   const interaction = await InteractionService.create({
     leadId,
     contactedAt: new Date(),
@@ -80,13 +83,16 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
   })
 
   let reminder: DomainReminder | null = null
+  console.log("reminders: ", data.reminder)
   if (data.reminder !== "disabled") {
+    console.log("Creating reminder!")
     reminder = await ReminderService.create({
       leadId,
       sellerId: user.id,
       message: generateReminderMessage(data.interactionType, new Date()),
       remindIn: data.reminder,
     })
+    console.log("Created reminder:", reminder)
   }
 
   return {

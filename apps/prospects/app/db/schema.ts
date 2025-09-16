@@ -126,6 +126,7 @@ export const leadRelations = relations(leads, ({ one, many }) => ({
         references: [subLists.id],
     }),
     interactions: many(leadInteractions),
+    reminders: many(reminders)
 }))
 
 export const subListRelations = relations(subLists, ({ one, many }) => ({
@@ -147,6 +148,17 @@ export const interactionRelations = relations(leadInteractions, ({ one }) => ({
     }),
     seller: one(users, {
         fields: [leadInteractions.sellerId],
+        references: [users.id],
+    }),
+}))
+
+export const reminderRelations = relations(reminders, ({ one }) => ({
+    lead: one(leads, {
+        fields: [reminders.leadId],
+        references: [leads.id],
+    }),
+    seller: one(users, {
+        fields: [reminders.sellerId],
         references: [users.id],
     }),
 }))

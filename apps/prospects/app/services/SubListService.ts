@@ -141,6 +141,7 @@ class SubListService {
                 leads: {
                     with: {
                         interactions: true,
+                        reminders: true,
                     },
                     orderBy: (leads, { asc }) => asc(leads.id),
                 },

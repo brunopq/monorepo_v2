@@ -2,6 +2,7 @@ import { db } from "~/db"
 import { leads } from "~/db/schema"
 
 import type { DomainInteraction } from "./InteractionService"
+import type { DomainReminder } from "./ReminderService"
 
 type DbLead = typeof leads.$inferSelect
 type NewDbLead = typeof leads.$inferInsert
@@ -20,6 +21,11 @@ export type DomainLead = {
 
 export type DomainLeadWithInteractions = DomainLead & {
     interactions: DomainInteraction[]
+}
+
+export type CompleteDomainLead = DomainLead & {
+    interactions: DomainInteraction[]
+    reminders: DomainReminder[]
 }
 
 export type NewDomainLead = Omit<DomainLead, "id">
