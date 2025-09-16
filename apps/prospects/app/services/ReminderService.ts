@@ -15,7 +15,7 @@ export type ReminderPeriod = z.infer<typeof reminderPeriodsSchema>
 
 export const domainReminderSchema = z.object({
     id: z.string(),
-    leadId: z.string(),
+    leadId: z.number(),
     sellerId: z.string(),
     createdAt: z.date(),
     remindAt: z.date(),

@@ -42,12 +42,18 @@ function generateReminderMessage(
 }
 
 export const action = async ({ request, params }: Route.ActionArgs) => {
-  console.log("Creating interaction...")
   const user = await getUserOrRedirect(request)
 
   const formData = Object.fromEntries(await request.formData())
 
-  const leadId = params.id
+  const leadId = Number.parseInt(params.id)
+
+  if (Number.isNaN(leadId)) {
+    return {
+      error: true,
+      message: "Invalid lead ID",
+    }
+  }
 
   const { success, error, data } = createInteractionSchema.safeParse({
     leadId,
@@ -57,7 +63,6 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
   })
 
   if (!success) {
-    console.log("Validation error", error)
     return {
       error: true,
       message: "Invalid input",
@@ -89,5 +94,4 @@ export const action = async ({ request, params }: Route.ActionArgs) => {
     interaction,
     reminder,
   }
-
 }

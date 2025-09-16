@@ -433,7 +433,7 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
 }
 
 type NewInteractionFormProps = {
-  leadId: string
+  leadId: number
   onClose: () => void
 }
 
@@ -578,7 +578,7 @@ const getStatusStyles = (status: string) => {
 
 type LeadInteractionRowProps = {
   interaction: DomainInteraction
-  leadId: string
+  leadId: number
   sellerName: string
 }
 

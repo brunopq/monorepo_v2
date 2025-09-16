@@ -7,7 +7,7 @@ type DbLead = typeof leads.$inferSelect
 type NewDbLead = typeof leads.$inferInsert
 
 export type DomainLead = {
-    id: string
+    id: number
     // name: string
     listId: string
     subListId: string | null;

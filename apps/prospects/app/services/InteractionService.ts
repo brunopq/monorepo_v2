@@ -18,7 +18,7 @@ export type InteractionStatuses = z.infer<typeof interactionStatusSchema>
 
 export const domainInteractionSchema = z.object({
     id: z.string(),
-    leadId: z.string(),
+    leadId: z.number(),
     sellerId: z.string(),
     contactedAt: z.date(),
     interactionType: interactionTypeSchema,
