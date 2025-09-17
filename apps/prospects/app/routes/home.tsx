@@ -1,9 +1,15 @@
 import type { Route } from "./+types/home"
 import { Link, NavLink, useLoaderData } from "react-router"
-import { PencilLineIcon, Trash2Icon } from "lucide-react"
-import { Button, PieChart } from "iboti-ui"
+import {
+  BellIcon,
+  PencilLineIcon,
+  SquareArrowOutUpRight,
+  SquareArrowOutUpRightIcon,
+  Trash2Icon,
+} from "lucide-react"
+import { Button, Popover } from "iboti-ui"
 
-import { maxWidth } from "~/utils/styling"
+import { cn, maxWidth } from "~/utils/styling"
 import { getUserOrRedirect } from "~/utils/authGuard"
 
 import ListService, { type DomainList } from "~/services/ListService"
@@ -11,6 +17,14 @@ import SubListService from "~/services/SubListService"
 
 import { SubListStatusPill } from "~/components/SubListStatusPill"
 import { DeleteListConfirmationModal } from "~/components/DeleteListConfirmationModal"
+import ReminderService from "~/services/ReminderService"
+import {
+  differenceInDays,
+  format,
+  formatDistanceToNow,
+  isAfter,
+} from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export function meta() {
   return [{ title: "Prospects" }]
@@ -21,11 +35,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const lists = user.role === "ADMIN" ? await ListService.getAll() : undefined
   const subLists = await SubListService.getForUser(user.id)
+  const reminders = await ReminderService.getForUser(user.id)
 
   return {
     user,
     lists,
     subLists,
+    reminders,
   }
 }
 
@@ -35,7 +51,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   return (
     <div className={maxWidth("pt-2")}>
       <header className="flex items-center justify-between border-primary-500 border-y border-dotted">
-        <h1 className="font-bold text-lg text-primary-600">Listão</h1>
+        <span className="flex items-center gap-2">
+          <Notifications />
+
+          <h1 className="font-bold text-lg text-primary-600">Listão</h1>
+        </span>
         <nav className="flex">
           <ul className="mx-4 flex gap-4">
             {[["Home", "/app"]].map(([name, path]) => (
@@ -69,6 +89,79 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
       <SubListsList />
     </div>
+  )
+}
+
+function Notifications() {
+  const { reminders } = useLoaderData<typeof loader>()
+
+  const remindersInTheFuture = reminders.filter((r) =>
+    isAfter(new Date(r.remindAt), new Date()),
+  )
+
+  return (
+    <Popover.Root defaultOpen>
+      <Popover.Trigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative size-auto p-1 text-primary-600 hover:text-primary-800"
+        >
+          <BellIcon className="size-5" />
+          {remindersInTheFuture.length > 0 && (
+            <span className="-top-0.5 -right-0.5 absolute flex size-3.5 items-center justify-center rounded-full bg-red-600 text-white text-xs">
+              {remindersInTheFuture.length}
+            </span>
+          )}
+        </Button>
+      </Popover.Trigger>
+
+      <Popover.Content className="p-2">
+        <h3 className="mb-2 font-semibold text-primary-700">
+          Lembretes ({remindersInTheFuture.length})
+        </h3>
+        {remindersInTheFuture.length === 0 ? (
+          <p className="text-gray-500 text-sm">Nenhum lembrete pendente</p>
+        ) : (
+          <ul className="space-y-1">
+            {remindersInTheFuture.map((r) => {
+              const distanceInDays = differenceInDays(
+                new Date(r.remindAt),
+                new Date(),
+              )
+              let distance = `Em ${formatDistanceToNow(new Date(r.remindAt), {
+                locale: ptBR,
+                addSuffix: true,
+              })}`
+
+              if (distanceInDays === 0) {
+                distance = "Hoje"
+              } else if (distanceInDays === 1) {
+                distance = "Amanhã"
+              }
+
+              return (
+                <li
+                  className="rounded-md border border-zinc-300 bg-zinc-100 px-2 py-1"
+                  key={r.id}
+                >
+                  {distance},{" "}
+                  {format(new Date(r.remindAt), "dd/MM/yyyy 'às' HH:mm")}
+                  <Link
+                    to={{
+                      pathname: `/listinhas/${r.lead.subListId}`,
+                      hash: `#lead-${r.leadId}`,
+                    }}
+                  >
+                    <SquareArrowOutUpRightIcon className="inline size-4 text-primary-600 hover:text-primary-800" />
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Popover.Content>
+    </Popover.Root>
   )
 }
 

@@ -1,13 +1,19 @@
 import { z } from "zod/v4"
-import { addDays, addWeeks } from 'date-fns'
+import { addDays, addWeeks } from "date-fns"
 
 import { db } from "~/db"
-import { reminders } from '~/db/schema'
+import { reminders } from "~/db/schema"
+import { asc, eq } from "drizzle-orm"
 
 type DbReminder = typeof reminders.$inferSelect
 type NewDbReminder = typeof reminders.$inferInsert
 
-export const reminderPeriods = ["disabled", "1_day", "2_days", "1_week"] as const
+export const reminderPeriods = [
+    "disabled",
+    "1_day",
+    "2_days",
+    "1_week",
+] as const
 
 export const reminderPeriodsSchema = z.enum(reminderPeriods)
 
@@ -19,45 +25,49 @@ export const domainReminderSchema = z.object({
     sellerId: z.string(),
     createdAt: z.date(),
     remindAt: z.date(),
-    message: z.string()
+    message: z.string(),
 })
 
-export const newDomainReminderSchema = domainReminderSchema.omit({
+export const newDomainReminderSchema = domainReminderSchema
+    .omit({
     id: true,
     createdAt: true,
     remindAt: true,
-}).extend({
-    remindIn: reminderPeriodsSchema
-})
+    })
+    .extend({
+        remindIn: reminderPeriodsSchema,
+    })
 
 export type DomainReminder = z.infer<typeof domainReminderSchema>
 export type NewDomainReminder = z.infer<typeof newDomainReminderSchema>
 
 class ReminderService {
     async insert(reminder: NewDbReminder): Promise<DbReminder> {
-        const [inserted] = await db.insert(reminders).values({
-            leadId: reminder.leadId,
-            sellerId: reminder.sellerId,
-            createdAt: reminder.createdAt,
-            remindAt: reminder.remindAt,
-            message: reminder.message,
-        }).returning()
+        const [inserted] = await db
+            .insert(reminders)
+            .values({
+                leadId: reminder.leadId,
+                sellerId: reminder.sellerId,
+                createdAt: reminder.createdAt,
+                remindAt: reminder.remindAt,
+                message: reminder.message,
+            })
+            .returning()
 
         return inserted
     }
 
     private addPeriod(date: Date, remindIn: ReminderPeriod): Date {
-        if (remindIn === '1_day')
-            return addDays(date, 1)
-        if (remindIn === '2_days') return addDays(date, 2)
-        if (remindIn === '1_week') return addWeeks(date, 1)
+        if (remindIn === "1_day") return addDays(date, 1)
+        if (remindIn === "2_days") return addDays(date, 2)
+        if (remindIn === "1_week") return addWeeks(date, 1)
 
         return date
     }
 
     async create(newReminder: NewDomainReminder): Promise<DomainReminder> {
-        console.log('creating reminder')
-        if (newReminder.remindIn === 'disabled') {
+        console.log("creating reminder")
+        if (newReminder.remindIn === "disabled") {
             throw new Error("wtf do you want bro")
         }
 
@@ -72,6 +82,17 @@ class ReminderService {
             remindAt: remindTime,
             sellerId: newReminder.sellerId,
         })
+    }
+
+    async getForUser(userId: string)/* : Promise<DomainReminder[]> */ {
+        const reminders = await db.query.reminders.findMany({
+            where: (reminder, { eq }) => eq(reminder.sellerId, userId),
+            with: {
+                lead: true
+            }
+        })
+
+        return reminders
     }
 }
 

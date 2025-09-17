@@ -1,5 +1,5 @@
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Route } from "./+types/[id]"
 import {
   ArrowLeftIcon,
@@ -15,7 +15,13 @@ import {
   CheckCircleIcon,
   CalendarClockIcon,
 } from "lucide-react"
-import { Form, Link, useFetcher, useLoaderData } from "react-router"
+import {
+  Form,
+  Link,
+  useFetcher,
+  useLoaderData,
+  useLocation,
+} from "react-router"
 import { Button, Tooltip, Table, Input, Select, Checkbox } from "iboti-ui"
 import {
   differenceInDays,
@@ -297,19 +303,21 @@ function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
       )}
 
       <Table.Root className="space-y-2">
-        <Table.Row>
-          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
-            {/* Empty header for buttons */}
-          </Table.Head>
-          {headers.map((h) => (
-            <Table.Head
-              className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl"
-              key={h}
-            >
-              {h}
+        <Table.Header>
+          <Table.Row>
+            <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
+              {/* Empty header for buttons */}
             </Table.Head>
-          ))}
-        </Table.Row>
+            {headers.map((h) => (
+              <Table.Head
+                className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl"
+                key={h}
+              >
+                {h}
+              </Table.Head>
+            ))}
+          </Table.Row>
+        </Table.Header>
         <Table.Body>
           {leads.map((lead) => (
             <LeadRow
@@ -379,9 +387,17 @@ const getLeadRowStyles = (lead: DomainLeadWithInteractions) => {
 
 function LeadRow({ lead, headers, isActive }: LeadRowProps) {
   const { canEdit } = useLoaderData<typeof loader>()
+  const { hash } = useLocation()
+  const rowId = `lead-${lead.id}`
 
+  // Initialize as false to match server state
   const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
+
+  // Update open state after hydration based on hash
+  useEffect(() => {
+    setOpen(hash.replace("#", "") === rowId)
+  }, [hash, rowId])
 
   const handleToggle = () => {
     if (isActive) {
@@ -403,6 +419,7 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
   return (
     <>
       <Table.Row
+        id={rowId}
         data-open={open}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
@@ -411,7 +428,7 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
         role="button"
         aria-expanded={open}
         className={cn(
-          "cursor-pointer transition-colors focus:outline-none",
+          "cursor-pointer scroll-mt-12 transition-colors focus:outline-none",
           !isActive && "cursor-default opacity-80",
           leadRowStyles,
         )}
@@ -799,7 +816,6 @@ function LeadInteractionRow({
 }: LeadInteractionRowProps) {
   const { canEdit } = useLoaderData<typeof loader>()
   const deleteFetcher = useFetcher<typeof interactionAction>()
-  console.log(interaction.id)
 
   const handleEdit = async () => {
     alert("Edição ainda não implementada, culpa do estagiário")
