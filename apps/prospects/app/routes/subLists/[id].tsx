@@ -13,15 +13,18 @@ import {
   CalendarIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
+  CalendarClockIcon,
 } from "lucide-react"
 import { Form, Link, useFetcher, useLoaderData } from "react-router"
-import { Button, Table, Input, Select, Checkbox } from "iboti-ui"
+import { Button, Tooltip, Table, Input, Select, Checkbox } from "iboti-ui"
 import {
+  differenceInDays,
   format,
   formatDistanceToNow,
   isPast,
   isToday,
   isTomorrow,
+  subDays,
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -295,6 +298,9 @@ function LeadsTable({ headers, leads, isActive }: LeadsTableProps) {
 
       <Table.Root className="space-y-2">
         <Table.Row>
+          <Table.Head className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl">
+            {/* Empty header for buttons */}
+          </Table.Head>
           {headers.map((h) => (
             <Table.Head
               className="sticky top-0 z-10 bg-zinc-50/50 backdrop-blur-2xl"
@@ -392,7 +398,7 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
 
   const leadRowStyles = getLeadRowStyles(lead)
 
-  const hasReminders = lead.reminders && lead.reminders.length > 0
+  const remindersCount = lead.reminders ? lead.reminders.length : 0
 
   return (
     <>
@@ -410,6 +416,11 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
           leadRowStyles,
         )}
       >
+        <Table.Cell className="p-2">
+          {remindersCount > 0 && (
+            <RemindersTooltip reminders={lead.reminders} />
+          )}
+        </Table.Cell>
         {[...headers].map((h) => {
           let value = "-"
           if (lead.extra?.[h]) value = lead.extra[h]
@@ -468,7 +479,7 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
               </div>
             </section>
 
-            {hasReminders && (
+            {remindersCount > 0 && (
               <section>
                 <header className="mt-4 mb-2 flex items-center justify-between">
                   <h3 className="font-semibold text-lg text-primary-800">
@@ -487,6 +498,57 @@ function LeadRow({ lead, headers, isActive }: LeadRowProps) {
   )
 }
 
+type RemindersTooltipProps = {
+  reminders: DomainReminder[]
+}
+
+function RemindersTooltip({ reminders }: RemindersTooltipProps) {
+  return (
+    <div className="relative inline-block">
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <div className="relative flex items-center justify-center rounded-full bg-white p-2 text-zinc-900">
+            <CalendarClockIcon className="size-6" />
+            <div className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-accent-600 font-semibold text-white text-xs">
+              {reminders.length}
+            </div>
+          </div>
+        </Tooltip.Trigger>
+        <Tooltip.Content className="text-start">
+          <p className="mb-2 font-semibold">
+            {reminders.length} lembrete{reminders.length !== 1 && "s"}:
+          </p>
+          <ul className="space-y-1">
+            {reminders.map((r) => {
+              const distanceInDays = differenceInDays(
+                new Date(r.remindAt),
+                new Date(),
+              )
+              let distance = `Em ${formatDistanceToNow(new Date(r.remindAt), {
+                locale: ptBR,
+                addSuffix: true,
+              })}`
+
+              if (distanceInDays === 0) {
+                distance = "Hoje"
+              } else if (distanceInDays === 1) {
+                distance = "Amanhã"
+              }
+
+              return (
+                <li key={r.id}>
+                  {distance},{" "}
+                  {format(new Date(r.remindAt), "dd/MM/yyyy 'às' HH:mm")}
+                </li>
+              )
+            })}
+          </ul>
+        </Tooltip.Content>
+      </Tooltip.Root>
+    </div>
+  )
+}
+
 type ReminderCardProps = {
   reminder: DomainReminder
 }
@@ -501,44 +563,40 @@ function ReminderCard({ reminder }: ReminderCardProps) {
   const getStatusInfo = () => {
     if (isPassed) {
       return {
-        icon: <AlertTriangleIcon className="size-4 text-zinc-600" />,
+        icon: <AlertTriangleIcon className="size-5 text-zinc-700" />,
         status: "Passado",
-        statusColor: "text-zinc-700",
+        statusColor: "text-zinc-800",
         bgColor: "bg-zinc-50 border-zinc-200",
         timeText: `Passou há ${formatDistanceToNow(remindDate, { locale: ptBR })}`,
-        timeColor: "text-zinc-600",
       }
     }
 
     if (isDueToday) {
       return {
-        icon: <ClockIcon className="size-4 text-orange-600" />,
+        icon: <ClockIcon className="size-5 text-orange-700" />,
         status: "Hoje",
-        statusColor: "text-orange-700",
+        statusColor: "text-orange-800",
         bgColor: "bg-orange-50 border-orange-300",
         timeText: `Hoje às ${format(remindDate, "HH:mm")}`,
-        timeColor: "text-orange-600",
       }
     }
 
     if (isDueTomorrow) {
       return {
-        icon: <CalendarIcon className="size-4 text-blue-600" />,
+        icon: <CalendarIcon className="size-5 text-blue-700" />,
         status: "Amanhã",
-        statusColor: "text-blue-700",
+        statusColor: "text-blue-800",
         bgColor: "bg-blue-50 border-blue-300",
-        timeText: `Amanhã às ${format(remindDate, "HH:mm")}`,
-        timeColor: "text-blue-600",
+        timeText: `${format(remindDate, "HH:mm")}`,
       }
     }
 
     return {
-      icon: <CalendarIcon className="size-4 text-green-600" />,
+      icon: <CalendarIcon className="size-5 text-green-700" />,
       status: "Agendado",
-      statusColor: "text-green-700",
+      statusColor: "text-green-800",
       bgColor: "bg-green-50 border-green-300",
       timeText: `${format(remindDate, "dd/MM/yyyy 'às' HH:mm")}`,
-      timeColor: "text-green-600",
     }
   }
 
@@ -550,28 +608,26 @@ function ReminderCard({ reminder }: ReminderCardProps) {
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {statusInfo.icon}
-          <span className={cn("font-semibold text-sm", statusInfo.statusColor)}>
-            {statusInfo.status}
+          <span className={cn("font-semibold", statusInfo.statusColor)}>
+            {statusInfo.status}, {statusInfo.timeText}
           </span>
         </div>
-        <span className={cn("font-medium text-xs", statusInfo.timeColor)}>
-          {statusInfo.timeText}
+
+        <span className="text-gray-500 text-xs">
+          Criado em {format(createdDate, "dd/MM/yyyy 'às' HH:mm")}
         </span>
       </div>
 
       {/* Message */}
-      <div className="mb-2">
+      <div className="">
         <p className="text-gray-800 text-sm leading-relaxed">
           {reminder.message}
         </p>
       </div>
 
-      {/* Footer with creation info */}
-      <div className="flex items-center justify-between border-gray-200 border-t pt-2">
-        <span className="text-gray-500 text-xs">
-          Criado em {format(createdDate, "dd/MM/yyyy 'às' HH:mm")}
-        </span>
-        {isPassed && (
+      {/* Footer */}
+      {isPassed && (
+        <div className="mt-2 flex items-center justify-between border-gray-200 border-t pt-2">
           <Button
             size="sm"
             variant="outline"
@@ -580,8 +636,8 @@ function ReminderCard({ reminder }: ReminderCardProps) {
             <CheckCircleIcon className="mr-1 size-3" />
             Marcar como concluído
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
