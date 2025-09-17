@@ -7,6 +7,7 @@ import * as BaseTable from "./components/table"
 import * as BaseTooltip from "./components/tooltip"
 import * as ToastPrimitives from "./components/toast"
 import * as DropdownMenuPrimitive from "./components/dropdown-menu"
+import * as PopoverPrimitive from "./components/popover"
 
 export { PieChart } from "./components/charts/pie"
 
@@ -75,6 +76,13 @@ export const DropdownMenu = {
   CheckboxItem: DropdownMenuPrimitive.DropdownMenuCheckboxItem,
   Label: DropdownMenuPrimitive.DropdownMenuLabel,
   Separator: DropdownMenuPrimitive.DropdownMenuSeparator,
+}
+
+export const Popover = {
+  Root: PopoverPrimitive.Popover,
+  Trigger: PopoverPrimitive.PopoverTrigger,
+  Content: PopoverPrimitive.PopoverContent,
+  Anchor: PopoverPrimitive.PopoverAnchor,
 }
 
 
