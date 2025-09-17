@@ -44,7 +44,7 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={glass(
-          "z-50 max-w-2xs text-balance rounded-md border border-primary-200 bg-primary-50/50 px-3 py-1.5 text-center text-primary-800 text-sm shadow",
+          "z-50 max-w-2xs text-balance rounded-md px-3 py-1.5 text-center text-primary-800 text-sm shadow",
           className,
         )}
         {...props}

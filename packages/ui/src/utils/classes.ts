@@ -10,5 +10,5 @@ export function maxWidth(...inputs: ClassValue[]) {
 }
 
 export function glass(...inputs: ClassValue[]) {
-    return cn("bg-zinc-50/50 backdrop-blur-2xl ", ...inputs)
+    return cn("bg-zinc-50/40 backdrop-blur-2xl border border-primary-200 ", ...inputs)
 }
