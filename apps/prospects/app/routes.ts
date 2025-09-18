@@ -15,7 +15,7 @@ export default [
         route("/novo", "routes/lists/new/index.tsx"),
         route("/:id", "routes/lists/[id].tsx"),
     ]),
-    ...prefix("/listinhas", [route("/:id", "routes/subLists/[id].tsx")]),
+    ...prefix("/listinhas", [route("/:id", "routes/subLists/[id]/index.tsx")]),
     ...prefix("/leads", [
         ...prefix("/:id", [
             ...prefix("/interactions", [
