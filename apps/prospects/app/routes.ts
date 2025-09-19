@@ -26,5 +26,6 @@ export default [
     ]),
     ...prefix("/api", [
         route("/prettify-column", "routes/api/prettifyColumns.ts"),
+        route("/whatsapp-templates", "routes/api/meta/whatsappTemplates.ts"),
     ]),
 ] satisfies RouteConfig
