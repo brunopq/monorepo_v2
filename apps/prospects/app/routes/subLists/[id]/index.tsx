@@ -1,8 +1,8 @@
 import type { Route } from "./+types"
 import { useState } from "react"
 import { ArrowLeftIcon } from "lucide-react"
-import { Form, Link, useLoaderData } from "react-router"
-import { Button, Checkbox, Dialog, Select } from "iboti-ui"
+import { Form, Link } from "react-router"
+import { Button, Checkbox } from "iboti-ui"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 import { cn } from "~/utils/styling"
@@ -17,9 +17,7 @@ import type { CompleteDomainLead } from "~/services/LeadService"
 import { SubListStatusPill } from "~/components/SubListStatusPill"
 
 import { LeadsTable } from "./components/LeadsTable"
-import { ProgressIndicator } from "./ProgressIndicator"
-import { useMessageTemplates } from "~/hooks/useMessageTemplates"
-import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateService"
+import { CreateMessagingCampaignDialog } from "./MessagingCampaign"
 
 export const loader = async ({ request, params }: Route.LoaderArgs) => {
   const user = await getUserOrRedirect(request, "/login")
@@ -136,7 +134,7 @@ export default function SubListRoute({ loaderData }: Route.ComponentProps) {
     <div className="grid h-screen grid-rows-[auto_1fr] gap-4 p-4">
       <header className="flex items-center justify-between gap-4 border-zinc-400 border-b border-dotted pb-2">
         <div className="flex items-start gap-4">
-          <Button asChild variant="ghost" size="icon">
+          <Button asChild variant="ghost" icon>
             <Link to="..">
               <ArrowLeftIcon />
             </Link>
@@ -257,224 +255,5 @@ function SubListTools({ setShowContacted, showContacted }: SubListToolsProps) {
 
       <CreateMessagingCampaignDialog />
     </fieldset>
-  )
-}
-
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
-type CreateMessagingCampaignDialogProps = {}
-
-const steps = [
-  { id: 1, name: "Selecionar template", component: TemplateSelect },
-  { id: 2, name: "Mapear campos", component: FieldMapping },
-  { id: 3, name: "Confirmar", component: null },
-] as const
-
-// biome-ignore lint/correctness/noEmptyPattern: <explanation>
-function CreateMessagingCampaignDialog({}: CreateMessagingCampaignDialogProps) {
-  const [open, setOpen] = useState(false)
-
-  const [stepId, setStepId] = useState(1)
-  const step = steps.find((s) => s.id === stepId)
-
-  const [selectedTemplate, setSelectedTemplate] = useState<
-    DomainMessageTemplate | undefined
-  >(undefined)
-
-  return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
-        <Button variant="default" size="sm">
-          Envio de mensagens
-        </Button>
-      </Dialog.Trigger>
-
-      <Dialog.Content className="[--dialog-content-max-width:48rem]">
-        <Dialog.Header>
-          <Dialog.Title>Novo disparo de mensagens</Dialog.Title>
-        </Dialog.Header>
-
-        <ProgressIndicator
-          steps={steps}
-          currentStepId={stepId}
-          className="mb-6"
-        />
-
-        <div>
-          {step?.component ? (
-            <step.component
-              open={open}
-              onSelectTemplate={setSelectedTemplate}
-              selectedTemplate={selectedTemplate}
-            />
-          ) : (
-            <p>Conteúdo do passo "{step?.name}"</p>
-          )}
-        </div>
-
-        <Dialog.Footer>
-          <Dialog.Close asChild>
-            <Button variant="ghost">Fechar</Button>
-          </Dialog.Close>
-          {stepId > 1 && (
-            <Button
-              onClick={() => {
-                if (stepId > 1) setStepId((p) => p - 1)
-              }}
-              variant="outline"
-            >
-              Anterior
-            </Button>
-          )}
-          <Button
-            onClick={() => {
-              if (stepId < steps.length) setStepId((p) => p + 1)
-            }}
-            variant="default"
-          >
-            Próximo
-          </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>
-  )
-}
-
-type TemplateSelectProps = {
-  open: boolean
-  onSelectTemplate: (template: DomainMessageTemplate) => void
-}
-
-function TemplateSelect({ open, onSelectTemplate }: TemplateSelectProps) {
-  const { templates, isLoading } = useMessageTemplates(open)
-
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
-    null,
-  )
-
-  const handleSelectTemplate = (templateId: string) => {
-    const template = templates?.find((t) => t.id === templateId)
-    if (template) {
-      onSelectTemplate(template)
-      setSelectedTemplateId(templateId)
-    }
-  }
-
-  return (
-    <>
-      <p className="mb-2">
-        Selecione o template {templates && `(${templates.length} disponíveis):`}
-      </p>
-      {isLoading && <p>Carregando templates...</p>}
-      {!isLoading && templates && (
-        <ul className="max-h-[24rem] space-y-2 overflow-y-auto">
-          {templates.map((t) => (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-            <li
-              key={t.id}
-              data-selected={t.id === selectedTemplateId}
-              onClick={() => handleSelectTemplate(t.id)}
-              className="group border-primary-500 border-l-[3px] px-2 transition-colors hover:bg-zinc-100/50 data-[selected=true]:border-primary-400 data-[selected=true]:bg-zinc-50"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <label className="flex items-center gap-2 font-medium text-primary-800 transition-colors group-data-[selected=true]:text-primary-600">
-                  <Checkbox checked={t.id === selectedTemplateId} />
-                  {t.name}
-                </label>
-
-                <span className="rounded-full bg-primary-200 px-2 py-0.5 text-primary-800 text-xs">
-                  {t.category}
-                </span>
-              </div>
-
-              {t.parameterNames.length > 0 && (
-                <div className="my-1 flex gap-1">
-                  {t.parameterNames.map((p) => (
-                    <span
-                      className="rounded-sm bg-accent-300 px-2 py-0.5 font-medium text-accent-900 text-sm"
-                      key={p}
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <p className="whitespace-pre-wrap text-sm text-zinc-700">
-                {t.content}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  )
-}
-
-type FieldMappingProps = {
-  selectedTemplate?: DomainMessageTemplate
-}
-
-function FieldMapping({ selectedTemplate }: FieldMappingProps) {
-  const { headers } = useLoaderData<typeof loader>()
-
-  return (
-    <>
-      <p>Selecione os campos a serem utilizados:</p>
-
-      <div>
-        <p>Campos disponíveis:</p>
-        <div className="mb-4 flex gap-2">
-          {headers.map((h) => (
-            <span
-              key={h}
-              className="rounded-sm bg-accent-300 px-2 py-0.5 font-medium text-accent-900 text-sm"
-            >
-              {h}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p>Campos padrão:</p>
-        <span className="flex items-center gap-2">
-          <strong>Telefone: </strong>
-          <Select.Root>
-            <Select.Trigger size="sm">
-              <Select.Value placeholder="Selecione..." />
-            </Select.Trigger>
-            <Select.Content size="sm">
-              {headers.map((h) => (
-                <Select.Item key={h} value={h}>
-                  {h}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Root>
-        </span>
-
-        <p>Campos da mensagem:</p>
-        {selectedTemplate && selectedTemplate.parameterNames.length > 0 ? (
-          selectedTemplate.parameterNames.map((param) => (
-            <div key={param} className="mt-2 flex items-center gap-2">
-              <strong>{param}: </strong>
-              <Select.Root>
-                <Select.Trigger size="sm">
-                  <Select.Value placeholder="Selecione..." />
-                </Select.Trigger>
-                <Select.Content size="sm">
-                  {headers.map((h) => (
-                    <Select.Item key={h} value={h}>
-                      {h}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Root>
-            </div>
-          ))
-        ) : (
-          <p>Nenhum campo para mapear</p>
-        )}
-      </div>
-    </>
   )
 }
