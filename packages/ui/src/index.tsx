@@ -74,6 +74,7 @@ export const DropdownMenu = {
   Content: DropdownMenuPrimitive.DropdownMenuContent,
   Item: DropdownMenuPrimitive.DropdownMenuItem,
   CheckboxItem: DropdownMenuPrimitive.DropdownMenuCheckboxItem,
+  RadioItem: DropdownMenuPrimitive.DropdownMenuRadioItem,
   Label: DropdownMenuPrimitive.DropdownMenuLabel,
   Separator: DropdownMenuPrimitive.DropdownMenuSeparator,
 }
