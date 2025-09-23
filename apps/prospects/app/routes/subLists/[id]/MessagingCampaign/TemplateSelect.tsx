@@ -4,15 +4,9 @@ import { useState } from "react"
 import { useMessageTemplates } from "~/hooks/useMessageTemplates"
 import { useCreateCampaignContext } from "./context"
 
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
-type TemplateSelectProps = {
-  //   open: boolean
-  //   onSelectTemplate: (template: DomainMessageTemplate) => void
-}
 
-// biome-ignore lint/correctness/noEmptyPattern: <explanation>
-export function TemplateSelect({}: TemplateSelectProps) {
-  const { dialogOpen } = useCreateCampaignContext()
+export function TemplateSelect() {
+  const { dialogOpen, onSelectTemplate } = useCreateCampaignContext()
 
   const { templates, isLoading } = useMessageTemplates(dialogOpen)
 
@@ -23,8 +17,8 @@ export function TemplateSelect({}: TemplateSelectProps) {
   const handleSelectTemplate = (templateId: string) => {
     const template = templates?.find((t) => t.id === templateId)
     if (template) {
-      //   onSelectTemplate(template)
       setSelectedTemplateId(templateId)
+      onSelectTemplate(template)
     }
   }
 

@@ -1,11 +1,18 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react"
 import { TemplateSelect } from "./TemplateSelect"
 import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateService"
-import { FieldMapping } from "./FieldMapping"
+import { FieldMappingStep } from "./FieldMappingStep"
+import type { FieldMapping, Mapping } from "./types"
 
 const steps = [
   { id: 1, name: "Selecionar template", component: TemplateSelect },
-  { id: 2, name: "Mapear campos", component: FieldMapping },
+  { id: 2, name: "Mapear campos", component: FieldMappingStep },
   { id: 3, name: "Confirmar", component: null },
 ] as const
 
@@ -20,6 +27,18 @@ type CreateCampaignContext = {
   goToNextStep: () => void
   goToPreviousStep: () => void
   selectedTemplate?: DomainMessageTemplate
+  onSelectTemplate: (template: DomainMessageTemplate) => void
+  mappings: FieldMapping[]
+  onAddMapping: (mapping: FieldMapping) => void
+  onUpdateMapping: (mappingId: string, updated: Partial<FieldMapping>) => void
+  onRemoveMapping: (mappingId: string) => void
+  onAddMappingToField: (fieldMappingId: string, mapping: Mapping) => void
+  onUpdateMappingInField: (
+    fieldMappingId: string,
+    mappingId: string,
+    updated: Mapping,
+  ) => void
+  onRemoveMappingFromField: (fieldMappingId: string, mappingId: string) => void
 }
 
 const createCampaignContext = createContext<CreateCampaignContext | null>(null)
@@ -33,19 +52,98 @@ export function CreateCampaignProvider({
 }: CreateCampaignProviderProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [currentStepId, setCurrentStepId] = useState(1)
+  const [selectedTemplate, setSelectedTemplate] = useState<
+    DomainMessageTemplate | undefined
+  >(undefined)
+  const [mappings, setMappings] = useState<FieldMapping[]>([])
 
   const goToNextStep = () => {
     setCurrentStepId((prev) => prev + 1)
   }
 
   const goToPreviousStep = () => {
-    console.log("going back")
-    setCurrentStepId((prev) => {
-      console.log({ prev })
-      return prev - 1
+    setCurrentStepId((prev) => prev - 1)
+  }
+
+  const getFullStep = () => {
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    return steps.find((step) => step.id === currentStepId)!
+  }
+
+  const canStepBack = currentStepId > 1
+  const canStepNext =
+    (currentStepId === 1 && !!selectedTemplate) || currentStepId === 2
+  const isLastStep = currentStepId === 3
+
+  const onAddMapping = (mapping: FieldMapping) => {
+    setMappings((prev) => {
+      if (prev.find((m) => m.name === mapping.name)) {
+        return prev
+      }
+      return [...prev, mapping]
     })
   }
-  const selectedTemplate = undefined
+
+  const onUpdateMapping = (
+    mappingId: string,
+    updated: Partial<FieldMapping>,
+  ) => {
+    setMappings((prev) =>
+      prev.map((m) => (m.id === mappingId ? { ...m, ...updated } : m)),
+    )
+  }
+
+  const onRemoveMapping = (mappingId: string) => {
+    setMappings((prev) => prev.filter((m) => m.id !== mappingId))
+  }
+
+  const onAddMappingToField = (fieldMappingId: string, mapping: Mapping) => {
+    setMappings((prev) =>
+      prev.map((fieldMapping) =>
+        fieldMapping.id === fieldMappingId
+          ? { ...fieldMapping, mappings: [...fieldMapping.mappings, mapping] }
+          : fieldMapping,
+      ),
+    )
+  }
+
+  const onUpdateMappingInField = (
+    fieldMappingId: string,
+    mappingId: string,
+    updated: Mapping,
+  ) => {
+    setMappings((prev) =>
+      prev.map((fieldMapping) =>
+        fieldMapping.id === fieldMappingId
+          ? {
+              ...fieldMapping,
+              mappings: fieldMapping.mappings.map((mapping) =>
+                mapping.id === mappingId ? { ...updated } : mapping,
+              ),
+            }
+          : fieldMapping,
+      ),
+    )
+  }
+
+  const onRemoveMappingFromField = (
+    fieldMappingId: string,
+    mappingId: string,
+  ) => {
+    setMappings((prev) =>
+      prev.map((fieldMapping) =>
+        fieldMapping.id === fieldMappingId
+          ? {
+              ...fieldMapping,
+              mappings: fieldMapping.mappings.filter(
+                (mapping) => mapping.id !== mappingId,
+              ),
+            }
+          : fieldMapping,
+      ),
+    )
+  }
+
   // Handle step validation logic in the context
   useEffect(() => {
     // If we're on step 2 (FieldMapping) but no template is selected,
@@ -56,18 +154,7 @@ export function CreateCampaignProvider({
     }
   }, [currentStepId, selectedTemplate])
 
-  const getFullStep = () => {
-    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-    return steps.find((step) => step.id === currentStepId)!
-  }
-
-  const canStepBack = currentStepId > 1
-  const canStepNext = currentStepId < 3
-  const isLastStep = currentStepId === 3
-
-  console.log({
-    currentStepId,
-  })
+  console.log(mappings)
 
   return (
     <createCampaignContext.Provider
@@ -81,6 +168,15 @@ export function CreateCampaignProvider({
         canStepNext,
         isLastStep,
         getFullStep,
+        selectedTemplate,
+        onSelectTemplate: setSelectedTemplate,
+        mappings,
+        onAddMapping,
+        onUpdateMapping,
+        onRemoveMapping,
+        onAddMappingToField,
+        onUpdateMappingInField,
+        onRemoveMappingFromField,
       }}
     >
       {children}
