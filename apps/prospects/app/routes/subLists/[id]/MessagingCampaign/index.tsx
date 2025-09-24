@@ -21,20 +21,25 @@ import { CreateCampaignProvider, useCreateCampaignContext } from "./context"
 
 export function CreateMessagingCampaignDialog() {
   return (
-    <CreateCampaignProvider>
-      <CreateMessagingCampaignDialogContent />
-    </CreateCampaignProvider>
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <Button variant="default" size="sm">
+          Envio de mensagens
+        </Button>
+      </Dialog.Trigger>
+
+      <CreateCampaignProvider>
+        <CreateMessagingCampaignDialogContent />
+      </CreateCampaignProvider>
+    </Dialog.Root>
   )
 }
 
 function CreateMessagingCampaignDialogContent() {
   const {
-    dialogOpen,
-    setDialogOpen,
     getFullStep,
     canStepBack,
     canStepNext,
-    isLastStep,
     goToNextStep,
     goToPreviousStep,
   } = useCreateCampaignContext()
@@ -42,50 +47,42 @@ function CreateMessagingCampaignDialogContent() {
   const step = getFullStep()
 
   return (
-    <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-      <Dialog.Trigger asChild>
-        <Button variant="default" size="sm">
-          Envio de mensagens
-        </Button>
-      </Dialog.Trigger>
+    <Dialog.Content className="[--dialog-content-max-width:48rem]">
+      <Dialog.Header>
+        <Dialog.Title>Novo disparo de mensagens</Dialog.Title>
 
-      <Dialog.Content className="[--dialog-content-max-width:48rem]">
-        <Dialog.Header>
-          <Dialog.Title>Novo disparo de mensagens</Dialog.Title>
-
-          {/* <ProgressIndicator
+        {/* <ProgressIndicator
             steps={steps}
             currentStepId={stepId}
             className="mb-6"
           /> */}
-        </Dialog.Header>
+      </Dialog.Header>
 
-        <div>
-          {step?.component ? (
-            <step.component />
-          ) : (
-            <p>Conteúdo do passo "{step?.name}"</p>
-          )}
-        </div>
+      <div>
+        {step?.component ? (
+          <step.component />
+        ) : (
+          <p>Conteúdo do passo "{step?.name}"</p>
+        )}
+      </div>
 
-        <Dialog.Footer>
-          <Dialog.Close asChild>
-            <Button variant="ghost">Fechar</Button>
-          </Dialog.Close>
-          {canStepBack && (
-            <Button onClick={goToPreviousStep} variant="outline">
-              Anterior
-            </Button>
-          )}
-          <Button
-            onClick={goToNextStep}
-            variant="default"
-            disabled={!canStepNext}
-          >
-            Próximo
+      <Dialog.Footer>
+        <Dialog.Close asChild>
+          <Button variant="ghost">Fechar</Button>
+        </Dialog.Close>
+        {canStepBack && (
+          <Button onClick={goToPreviousStep} variant="outline">
+            Anterior
           </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>
+        )}
+        <Button
+          onClick={goToNextStep}
+          variant="default"
+          disabled={!canStepNext}
+        >
+          Próximo
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }

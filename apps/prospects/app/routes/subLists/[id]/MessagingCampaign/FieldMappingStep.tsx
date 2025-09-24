@@ -50,11 +50,11 @@ export function FieldMappingStep() {
     <>
       <div className="mb-6">
         <p>Colunas da lista:</p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto">
           {headers.map((h) => (
             <span
               key={h}
-              className="rounded-sm bg-accent-300 px-2 py-0.5 font-medium text-accent-900 text-sm"
+              className="select-none text-nowrap rounded-sm bg-accent-300 px-2 py-0.5 font-medium text-accent-900 text-sm"
             >
               {h}
             </span>

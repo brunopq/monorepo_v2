@@ -1,12 +1,8 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react"
-import { TemplateSelect } from "./TemplateSelect"
+import { createContext, useContext, useEffect, useState } from "react"
+
 import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateService"
+
+import { TemplateSelect } from "./TemplateSelect"
 import { FieldMappingStep } from "./FieldMappingStep"
 import type { FieldMapping, Mapping } from "./types"
 
@@ -17,8 +13,6 @@ const steps = [
 ] as const
 
 type CreateCampaignContext = {
-  dialogOpen: boolean
-  setDialogOpen: (open: boolean) => void
   currentStepId: number
   canStepBack: boolean
   canStepNext: boolean
@@ -47,10 +41,7 @@ type CreateCampaignProviderProps = {
   children: React.ReactNode
 }
 
-export function CreateCampaignProvider({
-  children,
-}: CreateCampaignProviderProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
+export function CreateCampaignProvider({ children }: CreateCampaignProviderProps) {
   const [currentStepId, setCurrentStepId] = useState(1)
   const [selectedTemplate, setSelectedTemplate] = useState<
     DomainMessageTemplate | undefined
@@ -159,8 +150,6 @@ export function CreateCampaignProvider({
   return (
     <createCampaignContext.Provider
       value={{
-        dialogOpen,
-        setDialogOpen,
         currentStepId,
         goToNextStep,
         goToPreviousStep,

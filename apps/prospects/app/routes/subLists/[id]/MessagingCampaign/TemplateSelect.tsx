@@ -2,13 +2,14 @@ import { Checkbox } from "iboti-ui"
 import { useState } from "react"
 
 import { useMessageTemplates } from "~/hooks/useMessageTemplates"
+
 import { useCreateCampaignContext } from "./context"
 
 
 export function TemplateSelect() {
-  const { dialogOpen, onSelectTemplate } = useCreateCampaignContext()
+  const { onSelectTemplate } = useCreateCampaignContext()
 
-  const { templates, isLoading } = useMessageTemplates(dialogOpen)
+  const { templates, isLoading } = useMessageTemplates(true)
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
