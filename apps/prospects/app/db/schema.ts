@@ -12,7 +12,9 @@ import {
     uuid,
 } from "drizzle-orm/pg-core"
 import { customAlphabet } from "nanoid"
+
 import { interactionStatuses, interactionTypes } from "~/constants/interactions"
+import { messageStatuses, messagingCamapignTypes } from "~/constants/messagingCamapign"
 import { subListStates } from "~/constants/subList"
 
 const idLength = 12
@@ -105,6 +107,44 @@ export const reminders = pgTable("reminders", {
     createdAt: timestamp({ mode: "date", withTimezone: true }).notNull(),
     remindAt: timestamp({ mode: "date", withTimezone: true }).notNull(),
     message: text().notNull(),
+})
+
+// const messagingCampaignStatusEnum = pgEnum("messaging_campaign_status", [
+//     "running",
+//     "completed",
+// ])
+export const messagingCampaignTypeEnum = pgEnum("messaging_campaign_type", messagingCamapignTypes)
+
+export const messagingCampaign = pgTable("messaging_campaign", {
+    ...baseTable,
+    subListId: text()
+        .references(() => subLists.id)
+        .notNull(),
+    name: text().notNull(),
+    createdAt: timestamp({ mode: "date", withTimezone: true })
+        .notNull()
+        .defaultNow(),
+    type: messagingCampaignTypeEnum().notNull(),
+    // status: 
+})
+
+export const messageStatusEnum = pgEnum("message_status", messageStatuses)
+
+export const oficialWhatsappAPIMessage = pgTable("oficial_whatsapp_api_message", {
+    ...baseTable,
+    campaignId: text()
+        .references(() => messagingCampaign.id)
+        .notNull(),
+    leadId: integer()
+        .references(() => leads.id)
+        .notNull(),
+    phoneNumber: text().notNull(),
+    messageTemplateName: text().notNull(),
+    templateParameters: jsonb().notNull().$type<Record<string, string>>(),
+    renderedText: text().notNull(),
+    sentAt: timestamp({ mode: "date", withTimezone: true }),
+    status: messageStatusEnum().notNull().default("pending"),
+    error: text(),
 })
 
 export const listRelations = relations(lists, ({ one, many }) => ({

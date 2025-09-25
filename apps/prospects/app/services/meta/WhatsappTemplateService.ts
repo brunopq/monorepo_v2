@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { env } from '~/utils/env'
+
 /*
 {
   "data": [
@@ -170,10 +172,6 @@ const domainMessageTemplateSchema = z.object({
 
 export type DomainMessageTemplate = z.infer<typeof domainMessageTemplateSchema>
 
-const WABA_ID = '596094320243657'
-const META_API_TOKEN = 'EAAIwqZCZBA8cQBO1Gu285K8FTaspyjS0uRxrWSgUklXowI6aMR1QlmsDjK8MQnJjyaV9H8QCQ9ZA7GXYz2AJZCr9oJctdxmtqT28meDHDOq8kPjGPKAcidWptWZAJus8ZAEdZBoLwT9JW3yLZAVqjUzn3dAZBsuwpBLBjV6pAXjv2v9HqIMA50r8xhZC8aGCarIkuKJQZDZD'
-const GRAPH_API_URL = 'https://graph.facebook.com/v23.0'
-
 const messageMapper = {
     toDomain(template: WhatsappMessageTemplate): DomainMessageTemplate {
         const content = template.components
@@ -199,7 +197,7 @@ const messageMapper = {
 class WhatsappTemplateService {
     async listTemplates(): Promise<DomainMessageTemplate[]> {
         const response = await fetch(
-            `${GRAPH_API_URL}/${WABA_ID}/message_templates?access_token=${META_API_TOKEN}`,
+          `${env.META_GRAPH_API_URL}/${env.META_WABA_ID}/message_templates?access_token=${env.META_API_TOKEN}`,
             {
                 method: 'GET',
                 headers: {
@@ -209,6 +207,7 @@ class WhatsappTemplateService {
         )
 
         if (!response.ok) {
+          console.log(response.status, await response.text())
             throw new Error('Failed to fetch WhatsApp message templates')
         }
 

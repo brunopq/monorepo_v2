@@ -40,6 +40,8 @@ function CreateMessagingCampaignDialogContent() {
     getFullStep,
     canStepBack,
     canStepNext,
+    isLastStep,
+    onCreate,
     goToNextStep,
     goToPreviousStep,
   } = useCreateCampaignContext()
@@ -75,13 +77,19 @@ function CreateMessagingCampaignDialogContent() {
             Anterior
           </Button>
         )}
-        <Button
-          onClick={goToNextStep}
-          variant="default"
-          disabled={!canStepNext}
-        >
-          Próximo
-        </Button>
+        {isLastStep ? (
+          <Button onClick={onCreate} variant="default">
+            Criar
+          </Button>
+        ) : (
+          <Button
+            onClick={goToNextStep}
+            variant="default"
+            disabled={!canStepNext}
+          >
+            Próximo
+          </Button>
+        )}
       </Dialog.Footer>
     </Dialog.Content>
   )

@@ -4,12 +4,17 @@ import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateServ
 
 import { TemplateSelect } from "./TemplateSelect"
 import { FieldMappingStep } from "./FieldMappingStep"
+import { ConfirmationStep } from "./ConfirmationStep"
 import type { FieldMapping, Mapping } from "./types"
+import { useCreateMessagingCampaign } from "~/hooks/useCreateMessagingCampaign"
+import { useLoaderData } from "react-router"
+import type { loader } from ".."
+import type { NewDomainOficialWhatsappMessage } from "~/services/MessagingCampaignService"
 
 const steps = [
   { id: 1, name: "Selecionar template", component: TemplateSelect },
   { id: 2, name: "Mapear campos", component: FieldMappingStep },
-  { id: 3, name: "Confirmar", component: null },
+  { id: 3, name: "Confirmar", component: ConfirmationStep },
 ] as const
 
 type CreateCampaignContext = {
@@ -33,6 +38,7 @@ type CreateCampaignContext = {
     updated: Mapping,
   ) => void
   onRemoveMappingFromField: (fieldMappingId: string, mappingId: string) => void
+  onCreate: () => void
 }
 
 const createCampaignContext = createContext<CreateCampaignContext | null>(null)
@@ -42,11 +48,14 @@ type CreateCampaignProviderProps = {
 }
 
 export function CreateCampaignProvider({ children }: CreateCampaignProviderProps) {
+  const { subList } = useLoaderData<typeof loader>()
   const [currentStepId, setCurrentStepId] = useState(1)
   const [selectedTemplate, setSelectedTemplate] = useState<
     DomainMessageTemplate | undefined
   >(undefined)
   const [mappings, setMappings] = useState<FieldMapping[]>([])
+
+  const { create, creating, error } = useCreateMessagingCampaign()
 
   const goToNextStep = () => {
     setCurrentStepId((prev) => prev + 1)
@@ -135,6 +144,52 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
     )
   }
 
+  const onCreate = () => {
+    if (!selectedTemplate) {
+      return
+    }
+    if (!mappings.length) {
+      return
+    }
+
+    const phoneMappings = mappings.find((m) => m.name === "Telefone")
+
+    if (!phoneMappings) {
+      return
+    }
+
+    // TODO: decide if this type is ok here, it comes from the service
+    const messages: NewDomainOficialWhatsappMessage[] = subList.leads.flatMap(
+      (lead) => {
+        return phoneMappings.mappings.map((m) => {
+          if (m.type === "simple" && m.column) {
+            const phoneNumber = lead.extra[m.column]
+
+            const digits = String(phoneNumber).replace(/\D/g, "")
+            const formattedPhoneNumber = `+55${digits}`
+            return {
+              leadId: lead.id,
+              phoneNumber: formattedPhoneNumber,
+              messageTemplateName: selectedTemplate.name,
+              templateParameters: {},
+              renderedText: "todo: im lazy",
+            }
+          }
+          throw new Error("Unsupported mapping type")
+        })
+      },
+    )
+
+    create({
+      messagingCampaign: {
+        name: `Campanha - ${new Date().toLocaleDateString()}`,
+        subListId: subList.id,
+        type: "oficial_whatsapp_api",
+      },
+      messages,
+    })
+  }
+
   // Handle step validation logic in the context
   useEffect(() => {
     // If we're on step 2 (FieldMapping) but no template is selected,
@@ -145,7 +200,6 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
     }
   }, [currentStepId, selectedTemplate])
 
-  console.log(mappings)
 
   return (
     <createCampaignContext.Provider
@@ -166,6 +220,8 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
         onAddMappingToField,
         onUpdateMappingInField,
         onRemoveMappingFromField,
+
+        onCreate,
       }}
     >
       {children}
