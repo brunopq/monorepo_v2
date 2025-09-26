@@ -1,22 +1,5 @@
-import { useState } from "react"
-import { useLoaderData } from "react-router"
-import { EllipsisVerticalIcon, PlusIcon } from "lucide-react"
-import {
-  Button,
-  Checkbox,
-  Dialog,
-  DropdownMenu,
-  Input,
-  Select,
-  Tooltip,
-} from "iboti-ui"
+import { Button, Dialog } from "iboti-ui"
 
-import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateService"
-
-import { useMessageTemplates } from "~/hooks/useMessageTemplates"
-
-import type { loader } from ".."
-import { ProgressIndicator } from "../ProgressIndicator"
 import { CreateCampaignProvider, useCreateCampaignContext } from "./context"
 
 export function CreateMessagingCampaignDialog() {
@@ -52,19 +35,13 @@ function CreateMessagingCampaignDialogContent() {
     <Dialog.Content className="[--dialog-content-max-width:48rem]">
       <Dialog.Header>
         <Dialog.Title>Novo disparo de mensagens</Dialog.Title>
-
-        {/* <ProgressIndicator
-            steps={steps}
-            currentStepId={stepId}
-            className="mb-6"
-          /> */}
       </Dialog.Header>
 
       <div>
         {step?.component ? (
           <step.component />
         ) : (
-          <p>Conteúdo do passo "{step?.name}"</p>
+          <p>Nenhum passo selecionado (???)</p>
         )}
       </div>
 

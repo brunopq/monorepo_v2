@@ -21,7 +21,6 @@ export function FieldMappingStep() {
       id: crypto.randomUUID(),
       name: "Telefone",
       mappings: [{ id: crypto.randomUUID(), type: "simple", column: null }],
-      mapperFn: null,
     })
 
     for (const param of selectedTemplate.parameterNames) {
@@ -29,7 +28,6 @@ export function FieldMappingStep() {
         id: crypto.randomUUID(),
         name: param,
         mappings: [{ id: crypto.randomUUID(), type: "simple", column: null }],
-        mapperFn: null,
       })
     }
   }, [selectedTemplate])
@@ -77,7 +75,7 @@ export function FieldMappingStep() {
                   {m.name}:{" "}
                 </strong>
 
-                <SimplePhoneSelector
+                <SimpleMappingSelector
                   key={m.id}
                   fieldMappingId={m.id}
                   mapping={m.mappings[0]}
@@ -175,16 +173,22 @@ function MappingInput({ fieldMappingId, mapping }: MappingInputProps) {
   return (
     <span className="flex items-center gap-1">
       {mapping.type === "simple" && (
-        <SimplePhoneSelector
+        <SimpleMappingSelector
           fieldMappingId={fieldMappingId}
           mapping={mapping}
         />
       )}
       {mapping.type === "merge" && (
-        <MergePhoneSelector fieldMappingId={fieldMappingId} mapping={mapping} />
+        <MergeMappingSelector
+          fieldMappingId={fieldMappingId}
+          mapping={mapping}
+        />
       )}
       {mapping.type === "split" && (
-        <SplitPhoneSelector fieldMappingId={fieldMappingId} mapping={mapping} />
+        <SplitMappingSelector
+          fieldMappingId={fieldMappingId}
+          mapping={mapping}
+        />
       )}
 
       <DropdownMenu.Root>
@@ -224,12 +228,15 @@ function MappingInput({ fieldMappingId, mapping }: MappingInputProps) {
   )
 }
 
-type SelectorProps = {
+type MappingSelectorProps = {
   fieldMappingId: string
   mapping: Mapping
 }
 
-function SimplePhoneSelector({ fieldMappingId, mapping }: SelectorProps) {
+function SimpleMappingSelector({
+  fieldMappingId,
+  mapping,
+}: MappingSelectorProps) {
   const { headers } = useLoaderData<typeof loader>()
   const { onUpdateMappingInField } = useCreateCampaignContext()
 
@@ -255,7 +262,10 @@ function SimplePhoneSelector({ fieldMappingId, mapping }: SelectorProps) {
   )
 }
 
-function MergePhoneSelector({ fieldMappingId, mapping }: SelectorProps) {
+function MergeMappingSelector({
+  fieldMappingId,
+  mapping,
+}: MappingSelectorProps) {
   const { headers } = useLoaderData<typeof loader>()
   const { onUpdateMappingInField } = useCreateCampaignContext()
 
@@ -312,7 +322,10 @@ function MergePhoneSelector({ fieldMappingId, mapping }: SelectorProps) {
   )
 }
 
-function SplitPhoneSelector({ fieldMappingId, mapping }: SelectorProps) {
+function SplitMappingSelector({
+  fieldMappingId,
+  mapping,
+}: MappingSelectorProps) {
   const { headers } = useLoaderData<typeof loader>()
   const { onUpdateMappingInField } = useCreateCampaignContext()
 

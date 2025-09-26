@@ -25,5 +25,4 @@ export type FieldMapping = {
      */
     name: string
     mappings: Mapping[]
-    mapperFn: ((data: Record<string, string>) => string[]) | null
 }

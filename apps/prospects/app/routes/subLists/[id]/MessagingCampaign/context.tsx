@@ -1,15 +1,19 @@
 import { createContext, useContext, useEffect, useState } from "react"
+import { useLoaderData } from "react-router"
 
+import { phoneInternational } from "~/utils/formatting"
+
+import type { NewDomainOficialWhatsappMessage } from "~/services/MessagingCampaignService"
 import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateService"
+
+import { useCreateMessagingCampaign } from "~/hooks/useCreateMessagingCampaign"
 
 import { TemplateSelect } from "./TemplateSelect"
 import { FieldMappingStep } from "./FieldMappingStep"
 import { ConfirmationStep } from "./ConfirmationStep"
 import type { FieldMapping, Mapping } from "./types"
-import { useCreateMessagingCampaign } from "~/hooks/useCreateMessagingCampaign"
-import { useLoaderData } from "react-router"
 import type { loader } from ".."
-import type { NewDomainOficialWhatsappMessage } from "~/services/MessagingCampaignService"
+import { extractorFn } from "./utils"
 
 const steps = [
   { id: 1, name: "Selecionar template", component: TemplateSelect },
@@ -153,6 +157,9 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
     }
 
     const phoneMappings = mappings.find((m) => m.name === "Telefone")
+    const fieldMappings = mappings
+      .filter((m) => m.name !== "Telefone" && m.mappings.length > 0)
+      .map((m) => ({ ...m.mappings[0], name: m.name }))
 
     if (!phoneMappings) {
       return
@@ -161,21 +168,34 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
     // TODO: decide if this type is ok here, it comes from the service
     const messages: NewDomainOficialWhatsappMessage[] = subList.leads.flatMap(
       (lead) => {
-        return phoneMappings.mappings.map((m) => {
-          if (m.type === "simple" && m.column) {
-            const phoneNumber = lead.extra[m.column]
+        const phones: string[] = extractorFn(phoneMappings)(lead.extra)
+          .map((phoneNumber) => String(phoneNumber).replace(/\D/g, ""))
+          .map(phoneInternational)
+          // TODO: do something with the errors
+          .filter((r) => r.success)
+          .map((r) => r.phone)
 
-            const digits = String(phoneNumber).replace(/\D/g, "")
-            const formattedPhoneNumber = `+55${digits}`
-            return {
-              leadId: lead.id,
-              phoneNumber: formattedPhoneNumber,
-              messageTemplateName: selectedTemplate.name,
-              templateParameters: {},
-              renderedText: "todo: im lazy",
-            }
-          }
-          throw new Error("Unsupported mapping type")
+        return phones.map((phone) => {
+          const params = fieldMappings.reduce<Record<string, string>>(
+            (acc, fm) => {
+              if (fm.type === "simple" && fm.column) {
+                acc[fm.name] = lead.extra[fm.column] || ""
+              }
+              return acc
+            },
+            {},
+          )
+
+          return {
+            leadId: lead.id,
+            phoneNumber: phone,
+            messageTemplateName: selectedTemplate.name,
+            templateParameters: params,
+            renderedText: selectedTemplate.content.replace(
+              /\{\{\s*\$json\.(\w+)\s*\}\}/g,
+              (match, key) => (params[key] !== undefined ? params[key] : match),
+            ),
+          } satisfies NewDomainOficialWhatsappMessage
         })
       },
     )
