@@ -11,7 +11,7 @@ import {
   PencilIcon,
   ScrollTextIcon,
   Trash2Icon,
-} from "lucide-react/icons"
+} from "lucide-react"
 
 import type { FieldType } from "~/.server/db/schema/fieldType"
 import type { TemplateField } from "~/.server/db/schema/template"
