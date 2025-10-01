@@ -45,7 +45,7 @@ class OficialWhatsappAPIConsumer {
                     leadId: payload.leadId,
                     status: "waiting_response",
                     interactionType: "whatsapp_message",
-                    notes: `Mensagem enviada automaticamente via WhatsApp por uma campanha (${payload.campaign.name}) pelo número ${payload.message.to}.`,
+                    notes: `Mensagem enviada automaticamente via WhatsApp pela campanha (${payload.campaign.name}) para o número ${payload.message.to}.`,
                 })
             }
         } catch (e) {
@@ -61,7 +61,7 @@ class OficialWhatsappAPIConsumer {
                   leadId: payload.leadId,
                   status: "not_reachable",
                   interactionType: "whatsapp_message",
-                  notes: `Falha ao enviar mensagem automaticamente via WhatsApp por uma campanha (${payload.campaign.name}) pelo número ${payload.message.to}.\nErro: ${(e as Error).message}`,
+                  notes: `Falha ao enviar mensagem automaticamente via WhatsApp pela campanha (${payload.campaign.name}) para o número ${payload.message.to}.\nErro: ${(e as Error).message}`,
               })
           }
       })
