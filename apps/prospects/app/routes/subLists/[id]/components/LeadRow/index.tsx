@@ -123,7 +123,7 @@ export function LeadRow({ lead, headers, isActive }: LeadRowProps) {
         })}
       </Table.Row>
 
-      <LeadMenu lead={lead} />
+      <LeadMenu lead={lead} open={open} />
     </>
   )
 }

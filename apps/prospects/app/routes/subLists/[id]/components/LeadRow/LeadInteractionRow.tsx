@@ -55,13 +55,11 @@ const getStatusStyles = (status: string) => {
 type LeadInteractionRowProps = {
   interaction: DomainInteraction
   leadId: number
-  sellerName: string
 }
 
 export function LeadInteractionRow({
   interaction,
   leadId,
-  sellerName,
 }: LeadInteractionRowProps) {
   const { canEdit } = useLoaderData<typeof loader>()
   const deleteFetcher = useFetcher<typeof interactionAction>()
@@ -114,16 +112,18 @@ export function LeadInteractionRow({
         {canEdit && (
           <div className="space-x-1">
             <Button
-              size="icon"
-              className="size-auto p-2 text-zinc-500"
+              icon
+              size="sm"
+              className="text-zinc-500"
               variant="ghost"
               onClick={handleEdit}
             >
               <PencilLineIcon className="size-4" />
             </Button>
             <Button
-              size="icon"
-              className="size-auto p-2 text-zinc-500"
+              icon
+              size="sm"
+              className="text-zinc-500"
               variant="ghost"
               onClick={handleDelete}
             >

@@ -46,6 +46,7 @@ export const loader = async ({ request, params }: Route.LoaderArgs) => {
     extra: (l.extraInfo || {}) as Record<string, string>,
     interactions: l.interactions.map((i) => ({
       ...i,
+      sellerId: i.sellerId || undefined,
       notes: i.notes || undefined,
     })),
   }))

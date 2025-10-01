@@ -11,12 +11,12 @@ import { ReminderCard } from "./ReminderCard"
 
 export type LeadMenuProps = {
   lead: CompleteDomainLead
+  open: boolean
 }
 
-export function LeadMenu({ lead }: LeadMenuProps) {
+export function LeadMenu({ lead, open }: LeadMenuProps) {
   const { canEdit } = useLoaderData<typeof loader>()
 
-  const [open, setOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
   return (
@@ -58,7 +58,6 @@ export function LeadMenu({ lead }: LeadMenuProps) {
                     key={interaction.id}
                     interaction={interaction}
                     leadId={lead.id}
-                    sellerName={interaction.sellerId}
                   />
                 ))
               ) : (
