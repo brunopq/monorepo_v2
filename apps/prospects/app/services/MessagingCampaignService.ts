@@ -71,6 +71,9 @@ class MessagingCampaignService {
             await WhatsappQueue.publish({
                 messageId: msg.id,
                 campaignId: msg.campaignId,
+                campaign: {
+                    name: createdCampaign.name,
+                },
                 leadId: msg.leadId,
                 message: {
                     to: msg.phoneNumber,
@@ -84,6 +87,14 @@ class MessagingCampaignService {
     }
 
     async scheduleCampaign(campaignId: string) {
+        const campaign = await db.query.messagingCampaign.findFirst({
+            where: (c, { eq }) => eq(c.id, campaignId),
+        })
+
+        if (!campaign) {
+            throw new Error(`Campaign with ID ${campaignId} not found`)
+        }
+
         const messages = await db.query.oficialWhatsappAPIMessage.findMany({
             where: (msg, { eq, and }) => and(eq(msg.campaignId, campaignId), eq(msg.status, 'pending'))
         })
@@ -92,6 +103,9 @@ class MessagingCampaignService {
             await WhatsappQueue.publish({
                 messageId: msg.id,
                 campaignId: msg.campaignId,
+                campaign: {
+                    name: campaign.name
+                },
                 leadId: msg.leadId,
                 message: {
                     to: msg.phoneNumber,

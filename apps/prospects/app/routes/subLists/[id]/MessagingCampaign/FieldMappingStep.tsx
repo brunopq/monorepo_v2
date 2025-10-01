@@ -46,19 +46,7 @@ export function FieldMappingStep() {
 
   return (
     <>
-      <div className="mb-6">
-        <p>Colunas da lista:</p>
-        <div className="flex gap-2 overflow-x-auto">
-          {headers.map((h) => (
-            <span
-              key={h}
-              className="select-none text-nowrap rounded-sm bg-accent-300 px-2 py-0.5 font-medium text-accent-900 text-sm"
-            >
-              {h}
-            </span>
-          ))}
-        </div>
-      </div>
+      <p className="mb-2">Mapear campos:</p>
 
       <div className="mb-6">
         <p className="mb-1">Campos padrão:</p>

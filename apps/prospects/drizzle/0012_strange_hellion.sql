@@ -1,0 +1,1 @@
+ALTER TABLE "lead_interactions" ALTER COLUMN "seller_id" DROP NOT NULL;

@@ -5,6 +5,9 @@ import QueueService from "./QueueService"
 
 const whatsappMessagePayloadSchema = z.object({
     campaignId: z.string(),
+    campaign: z.object({
+        name: z.string(),
+    }),
     leadId: z.int(),
     messageId: z.string(),
     message: z.object({

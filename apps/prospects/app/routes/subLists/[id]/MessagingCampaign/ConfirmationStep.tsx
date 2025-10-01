@@ -1,9 +1,30 @@
+import { useCreateCampaignContext } from "./context"
+
 export function ConfirmationStep() {
+  const { leadsCount, messagesCount, selectedTemplate } =
+    useCreateCampaignContext()
+
   return (
     <div>
-      <h2 className="mb-4 font-bold text-2xl">Confirmar Campanha</h2>
-      <p>Revise as informações da campanha antes de criar.</p>
-      {/* Here you would typically show a summary of the campaign details */}
+      <p className="mb-2">Confirmar criação</p>
+
+      <div>
+        Serão enviadas
+        <strong className="font-semibold text-primary-700">
+          {" "}
+          {messagesCount}{" "}
+        </strong>
+        mensagens para
+        <strong className="font-semibold text-primary-700">
+          {" "}
+          {leadsCount}{" "}
+        </strong>
+        leads, utilizando o template{" "}
+        <strong className="font-semibold text-primary-700">
+          {selectedTemplate?.name}
+        </strong>
+        .
+      </div>
     </div>
   )
 }

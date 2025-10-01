@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { useLoaderData } from "react-router"
 
 import { phoneInternational } from "~/utils/formatting"
@@ -43,6 +43,8 @@ type CreateCampaignContext = {
   ) => void
   onRemoveMappingFromField: (fieldMappingId: string, mappingId: string) => void
   onCreate: () => void
+  leadsCount: number
+  messagesCount: number
 }
 
 const createCampaignContext = createContext<CreateCampaignContext | null>(null)
@@ -148,7 +150,7 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
     )
   }
 
-  const onCreate = () => {
+  const makeMessages = () => {
     if (!selectedTemplate) {
       return
     }
@@ -199,6 +201,15 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
         })
       },
     )
+    return messages
+  }
+
+  const onCreate = () => {
+    const messages = makeMessages()
+
+    if (!messages) {
+      return
+    }
 
     create({
       messagingCampaign: {
@@ -209,6 +220,13 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
       messages,
     })
   }
+
+  const leadsCount = useMemo(() => subList.leads.length, [subList.leads.length])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const messagesCount = useMemo(
+    () => makeMessages()?.length || 0,
+    [mappings, selectedTemplate, subList.leads.length],
+  )
 
   // Handle step validation logic in the context
   useEffect(() => {
@@ -242,6 +260,9 @@ export function CreateCampaignProvider({ children }: CreateCampaignProviderProps
         onRemoveMappingFromField,
 
         onCreate,
+
+        leadsCount,
+        messagesCount,
       }}
     >
       {children}

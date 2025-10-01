@@ -88,8 +88,7 @@ export const leadInteractions = pgTable("lead_interactions", {
         .references(() => leads.id)
         .notNull(),
     sellerId: text()
-        .references(() => users.id)
-        .notNull(),
+        .references(() => users.id),
     contactedAt: timestamp({ mode: "date", withTimezone: true }).notNull(),
     interactionType: interactionTypesEnum().notNull(),
     status: interactionStatusesEnum().notNull(),
