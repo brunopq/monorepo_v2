@@ -48,7 +48,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const { user, lists } = loaderData
 
   return (
-    <div className={maxWidth("pt-2")}>
+    <div className={maxWidth("pt-2 pb-64")}>
       <header className="flex items-center justify-between border-primary-500 border-y border-dotted">
         <span className="flex items-center gap-2">
           <Notifications />

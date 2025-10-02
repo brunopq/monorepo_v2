@@ -52,7 +52,7 @@ class SubListService {
                 assignee: true,
                 parentList: true,
             },
-            orderBy: (subLists, { asc }) => asc(subLists.id),
+            orderBy: (subLists, { asc }) => asc(subLists.state),
         })
 
         const slsWithCounts = await Promise.all(
