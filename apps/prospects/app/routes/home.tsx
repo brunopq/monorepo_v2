@@ -100,12 +100,13 @@ function Notifications() {
   )
 
   return (
-    <Popover.Root defaultOpen>
+    <Popover.Root>
       <Popover.Trigger asChild>
         <Button
+          icon
+          size="sm"
           variant="ghost"
-          size="icon"
-          className="relative size-auto p-1 text-primary-600 hover:text-primary-800"
+          className="relative size-auto text-primary-600 hover:text-primary-800"
         >
           <BellIcon className="size-5" />
           {remindersInTheFuture.length > 0 && (
@@ -116,7 +117,7 @@ function Notifications() {
         </Button>
       </Popover.Trigger>
 
-      <Popover.Content className="p-2">
+      <Popover.Content className="px-2 py-1">
         <h3 className="mb-2 font-semibold text-primary-700">
           Lembretes ({remindersInTheFuture.length})
         </h3>
