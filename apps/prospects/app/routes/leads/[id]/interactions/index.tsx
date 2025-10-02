@@ -7,7 +7,6 @@ import { getUserOrRedirect } from "~/utils/authGuard"
 import InteractionService, {
   interactionStatusSchema,
   interactionTypeSchema,
-  newInteractionSchema,
   type InteractionTypes,
 } from "~/services/InteractionService"
 import ReminderService, {

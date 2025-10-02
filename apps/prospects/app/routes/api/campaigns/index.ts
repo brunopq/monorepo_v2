@@ -3,10 +3,11 @@ import { z } from "zod"
 
 import { getUserOrRedirect } from "~/utils/authGuard"
 
-import MessagingCampaignService, {
+import MessagingCampaignService from "~/services/MessagingCampaignService"
+import {
     newDomainMessagingCampaignSchema,
     newDomainOficialWhatsappMessageSchema,
-} from "~/services/MessagingCampaignService"
+} from "~/services/MessagingCampaignService/schemas"
 
 export const newCampaignPayloadSchema = z.object({
     messagingCampaign: newDomainMessagingCampaignSchema,
@@ -20,7 +21,7 @@ TODO:
 - parse the leads in the server to offload the client
 */
 export const action = async ({ request }: Route.ActionArgs) => {
-    const user = await getUserOrRedirect(request)
+    await getUserOrRedirect(request)
 
     const data = await request.json()
 

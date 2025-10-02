@@ -1,4 +1,11 @@
 import type { Route } from "./+types/home"
+import {
+  differenceInDays,
+  format,
+  formatDistanceToNow,
+  isAfter,
+} from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { Link, NavLink, useLoaderData } from "react-router"
 import {
   BellIcon,
@@ -13,17 +20,10 @@ import { getUserOrRedirect } from "~/utils/authGuard"
 
 import ListService from "~/services/ListService"
 import SubListService from "~/services/SubListService"
+import ReminderService from "~/services/ReminderService"
 
 import { SubListStatusPill } from "~/components/SubListStatusPill"
 import { DeleteListConfirmationModal } from "~/components/DeleteListConfirmationModal"
-import ReminderService from "~/services/ReminderService"
-import {
-  differenceInDays,
-  format,
-  formatDistanceToNow,
-  isAfter,
-} from "date-fns"
-import { ptBR } from "date-fns/locale"
 
 export function meta() {
   return [{ title: "Prospects" }]

@@ -3,7 +3,7 @@ import { useLoaderData } from "react-router"
 
 import { phoneInternational } from "~/utils/formatting"
 
-import type { NewDomainOficialWhatsappMessage } from "~/services/MessagingCampaignService"
+import type { NewDomainOficialWhatsappMessage } from "~/services/MessagingCampaignService/schemas"
 import type { DomainMessageTemplate } from "~/services/meta/WhatsappTemplateService"
 
 import { useCreateMessagingCampaign } from "~/hooks/useCreateMessagingCampaign"
