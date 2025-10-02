@@ -44,11 +44,9 @@ export function DeleteListConfirmationModal({
 
   return (
     <Dialog.Root>
-      <Dialog.Trigger asChild>
-        <Button icon="right" variant="destructive" size="sm" type="button">
-          Excluir
-          <Trash2Icon className="size-4" />
-        </Button>
+      <Dialog.Trigger className="flex items-center justify-between gap-2">
+        <Trash2Icon className="size-4" />
+        Excluir
       </Dialog.Trigger>
 
       <Dialog.Content>

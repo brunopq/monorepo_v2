@@ -2,17 +2,16 @@ import type { Route } from "./+types/home"
 import { Link, NavLink, useLoaderData } from "react-router"
 import {
   BellIcon,
+  EllipsisVerticalIcon,
   PencilLineIcon,
-  SquareArrowOutUpRight,
   SquareArrowOutUpRightIcon,
-  Trash2Icon,
 } from "lucide-react"
-import { Button, Popover } from "iboti-ui"
+import { Button, DropdownMenu, Popover } from "iboti-ui"
 
-import { cn, maxWidth } from "~/utils/styling"
+import { maxWidth } from "~/utils/styling"
 import { getUserOrRedirect } from "~/utils/authGuard"
 
-import ListService, { type DomainList } from "~/services/ListService"
+import ListService from "~/services/ListService"
 import SubListService from "~/services/SubListService"
 
 import { SubListStatusPill } from "~/components/SubListStatusPill"
@@ -178,51 +177,50 @@ function SubListsList() {
       </header>
       <ul className="space-y-2">
         {subLists?.map((subList) => (
-          <li
-            key={subList.id}
-            className="flex items-center justify-between border-primary-500 border-l-[3px] pl-3 transition-colors hover:bg-zinc-100"
-          >
-            <div>
-              <span className="flex items-center gap-2">
-                <Link
-                  to={`/listinhas/${subList.id}`}
-                  className="text-primary-600 hover:text-primary-800"
-                >
-                  {subList.parentList.name}
-                </Link>
+          <li key={subList.id}>
+            <Link
+              to={`/listinhas/${subList.id}`}
+              className="flex items-center justify-between border-primary-500 border-l-[3px] pl-3 transition-colors hover:bg-zinc-100"
+            >
+              <div>
+                <span className="flex items-center gap-2">
+                  <h3 className="text-primary-600 hover:text-primary-800">
+                    {subList.parentList.name}
+                  </h3>
 
-                <SubListStatusPill status={subList.state} />
-              </span>
-              <p className="text-gray-500 text-sm">
-                Criado em: {subList.parentList.createdAt.toLocaleDateString()}
-              </p>
-              <p className="text-gray-500 text-sm">
-                Origem: {subList.parentList.origin}
-              </p>
-            </div>
+                  <SubListStatusPill status={subList.state} />
+                </span>
+                <p className="text-gray-500 text-sm">
+                  Criado em: {subList.parentList.createdAt.toLocaleDateString()}
+                </p>
+                <p className="text-gray-500 text-sm">
+                  Origem: {subList.parentList.origin}
+                </p>
+              </div>
 
-            <div className="text-end text-sm">
-              <p>
-                {subList.contactedLeadsCount} de {subList.leadsCount} leads
-                contatados
-              </p>
-              <p className="text-yellow-800">
-                Aguardando resposta de {subList.record.waiting_response}{" "}
-                {subList.record.waiting_response === 1 ? "lead" : "leads"}
-              </p>
-              <p className="text-blue-800">
-                {subList.record.interested}{" "}
-                {subList.record.interested === 1
-                  ? "lead interessado"
-                  : "leads interessados"}
-              </p>
-              <p className="text-green-800">
-                {subList.record.converted}{" "}
-                {subList.record.converted === 1
-                  ? "lead convertido"
-                  : "leads convertidos"}
-              </p>
-            </div>
+              <div className="text-end text-sm">
+                <p>
+                  {subList.contactedLeadsCount} de {subList.leadsCount} leads
+                  contatados
+                </p>
+                <p className="text-yellow-800">
+                  Aguardando resposta de {subList.record.waiting_response}{" "}
+                  {subList.record.waiting_response === 1 ? "lead" : "leads"}
+                </p>
+                <p className="text-blue-800">
+                  {subList.record.interested}{" "}
+                  {subList.record.interested === 1
+                    ? "lead interessado"
+                    : "leads interessados"}
+                </p>
+                <p className="text-green-800">
+                  {subList.record.converted}{" "}
+                  {subList.record.converted === 1
+                    ? "lead convertido"
+                    : "leads convertidos"}
+                </p>
+              </div>
+            </Link>
           </li>
         ))}
       </ul>
@@ -266,14 +264,44 @@ function ListCard({ list }: ListCardProps) {
   )
 
   return (
-    <li className="flex items-center justify-between border-primary-500 border-l-[3px] pl-3 transition-colors hover:bg-zinc-100">
-      <div>
-        <Link
-          to={`/listas/${list.id}`}
-          className="text-primary-600 hover:text-primary-800"
-        >
-          {list.name} - {list.size} leads
-        </Link>
+    <li>
+      <Link
+        to={`/listas/${list.id}`}
+        className="block border-primary-500 border-l-[3px] pl-3 transition-colors hover:bg-zinc-100"
+      >
+        <header className="flex items-center gap-2">
+          <h3 className="text-primary-600 hover:text-primary-800">
+            {list.name} - {list.size} leads
+          </h3>
+
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                icon
+                size="sm"
+                variant="ghost"
+                className="size-auto text-primary-600 hover:text-primary-800"
+              >
+                <EllipsisVerticalIcon className="size-5" />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item>
+                <PencilLineIcon className="size-4" />
+                Editar
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                onClick={(e) => e.preventDefault()}
+                variant="danger"
+              >
+                <DeleteListConfirmationModal
+                  listId={list.id}
+                  listName={list.name}
+                />
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </header>
         <p className="text-gray-500 text-sm">
           Criado em: {list.createdAt.toLocaleDateString()}
         </p>
@@ -282,15 +310,7 @@ function ListCard({ list }: ListCardProps) {
           Divido em {list.subLists.length} listinhas, {completeSublists.length}{" "}
           concluídas, {inProgressSublists.length} em progresso.
         </p>
-      </div>
-
-      <div className="flex flex-col gap-1 ">
-        <Button className="gap-2" variant="outline" size="sm">
-          Editar
-          <PencilLineIcon className="size-4" />
-        </Button>
-        <DeleteListConfirmationModal listId={list.id} listName={list.name} />
-      </div>
+      </Link>
     </li>
   )
 }
