@@ -1,7 +1,7 @@
 import type { Route } from "./+types"
 import { z } from "zod"
 
-import { getUserOrRedirect } from "~/utils/authGuard"
+import { getAdminOrRedirect } from "~/utils/authGuard"
 
 import MessagingCampaignService from "~/services/MessagingCampaignService"
 import {
@@ -21,7 +21,7 @@ TODO:
 - parse the leads in the server to offload the client
 */
 export const action = async ({ request }: Route.ActionArgs) => {
-    await getUserOrRedirect(request)
+    await getAdminOrRedirect(request)
 
     const data = await request.json()
 

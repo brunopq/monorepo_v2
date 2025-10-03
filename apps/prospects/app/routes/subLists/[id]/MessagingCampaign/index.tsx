@@ -1,8 +1,16 @@
 import { Button, Dialog } from "iboti-ui"
+import { useLoaderData } from "react-router"
 
 import { CreateCampaignProvider, useCreateCampaignContext } from "./context"
+import type { loader } from ".."
 
 export function CreateMessagingCampaignDialog() {
+  const { user } = useLoaderData<typeof loader>()
+
+  if (!user || user.role !== "ADMIN") {
+    return null
+  }
+
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
