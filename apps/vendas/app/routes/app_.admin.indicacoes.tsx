@@ -1,23 +1,26 @@
 import type { Route } from "./+types/app_.admin.indicacoes"
 import { useSearchParams } from "react-router"
-import { Select } from "iboti-ui"
+import { Select, Table } from "iboti-ui"
 
 import { getAdminOrRedirect } from "~/lib/authGuard"
 import { maxWidth } from "~/lib/utils"
 import { extractDateFromRequest } from "~/lib/extractDateFromRequest"
+import IndicationService from "~/services/IndicationService"
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const { jwt } = await getAdminOrRedirect(request)
 
   const { year } = extractDateFromRequest(request)
 
-  return { year }
+  const indications = await IndicationService.getIndications(year)
+
+  return { year, indications }
 }
 
 const YEARS = [2024, 2025, 2026]
 
 export default function Indicacoes({ loaderData }: Route.ComponentProps) {
-  const { year } = loaderData
+  const { year, indications } = loaderData
 
   const [_, setSearchParams] = useSearchParams()
 
@@ -56,6 +59,28 @@ export default function Indicacoes({ loaderData }: Route.ComponentProps) {
           </Select.Root>
         </span>
       </fieldset>
+
+      <main>
+        <Table.Root>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head className="w-0" />
+              <Table.Head>Nome</Table.Head>
+              <Table.Head>Indicações</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {indications.map((indication, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              <Table.Row key={index}>
+                <Table.Cell>{index + 1}º</Table.Cell>
+                <Table.Cell>{indication.personName}</Table.Cell>
+                <Table.Cell>{indication.totalIndications}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </main>
     </section>
   )
 }
