@@ -153,7 +153,7 @@ function CampaignGoalPreview({
   individualPrize,
 }: CampaignGoalPreviewProps) {
   return (
-    <div className="mt-2 grid grid-cols-[repeat(4,_auto)] text-sm">
+    <div className="mt-2 grid grid-cols-[repeat(4,auto)] text-sm">
       <strong className="col-span-full mb-1 text-base">Metas: </strong>
 
       <span />

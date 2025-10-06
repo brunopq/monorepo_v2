@@ -228,7 +228,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
         </header>
 
         <div className="grid grid-cols-6 gap-4">
-          <div className="col-span-2 row-span-2 flex flex-col items-center rounded-md border border-primary-200 bg-primary-100 p-4 shadow-sm">
+          <div className="col-span-2 row-span-2 flex flex-col items-center rounded-md border border-primary-200 bg-primary-100 p-4 shadow-xs">
             <Tabs.Root className="w-full" defaultValue="campaigns">
               <Tabs.List>
                 <Tabs.Trigger value="campaigns">Áreas</Tabs.Trigger>
@@ -268,7 +268,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             </Tabs.Root>
           </div>
 
-          <div className="col-span-4 grid grid-cols-subgrid gap-2 rounded-md border border-teal-300 bg-teal-100 p-6 shadow-sm">
+          <div className="col-span-4 grid grid-cols-subgrid gap-2 rounded-md border border-teal-300 bg-teal-100 p-6 shadow-xs">
             <h3 className="col-span-2 text-lg">Premiações</h3>
 
             <div className="col-span-2 row-start-2">
@@ -347,7 +347,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          {/* <div className="col-span-4 grid grid-cols-subgrid gap-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-sm">
+          {/* <div className="col-span-4 grid grid-cols-subgrid gap-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-xs">
             <h3 className="col-span-full mt-2 font-semibold text-lg text-primary-800">
               Vendas durante o mês
             </h3>
@@ -365,7 +365,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             </div>
           </div> */}
 
-          <div className="col-span-2 row-span-2 grid grid-cols-subgrid gap-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-sm">
+          <div className="col-span-2 row-span-2 grid grid-cols-subgrid gap-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-xs">
             <div className="col-span-2">
               <h3 className="text-center text-lg">Vendas</h3>
               <hr className="mb-4 border-primary-400 border-dashed" />
@@ -406,7 +406,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          <div className="col-span-2 row-span-2 flex flex-col items-center justify-between gap-6 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-sm">
+          <div className="col-span-2 row-span-2 flex flex-col items-center justify-between gap-6 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-xs">
             <h3>Fonte dos clientes novos</h3>
 
             <BarChart
@@ -426,7 +426,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
             />
           </div>
 
-          <div className="col-span-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-sm">
+          <div className="col-span-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-xs">
             <header className="mb-6 border-primary-400 border-b border-dashed pb-2">
               <h3 className="text-center text-lg">Suas indicações</h3>
             </header>
@@ -734,7 +734,7 @@ function RecentSales() {
                     <ChevronDown
                       data-sort={c.column.getIsSorted()}
                       className={cn(
-                        "transition-transform duration-300 data-[sort='desc']:rotate-180 data-[sort=false]:scale-0 data-[sort=false]:group-hover:scale-50",
+                        "transition-transform duration-300 data-[sort='desc']:rotate-180 data-[sort=false]:scale-0 group-hover:data-[sort=false]:scale-50",
                       )}
                     />
                   </span>

@@ -98,7 +98,7 @@ export default function TrocaSenha({
 
   return (
     <div className="grid h-screen place-items-center bg-zinc-300">
-      <div className="max-w-[calc(100vw-1rem)] rounded bg-zinc-200 p-6 shadow-sm">
+      <div className="max-w-[calc(100vw-1rem)] rounded bg-zinc-200 p-6 shadow-xs">
         <header className="mb-6">
           <h2 className="text-center font-semibold text-primary-800 text-xl">
             Trocar senha

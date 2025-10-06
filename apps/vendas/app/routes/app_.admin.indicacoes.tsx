@@ -1,6 +1,6 @@
 import type { Route } from "./+types/app_.admin.indicacoes"
 import { useSearchParams } from "react-router"
-import { Select } from "~/components/ui"
+import { Select } from "iboti-ui"
 
 import { getAdminOrRedirect } from "~/lib/authGuard"
 import { maxWidth } from "~/lib/utils"
@@ -39,10 +39,14 @@ export default function Indicacoes({ loaderData }: Route.ComponentProps) {
             name="ano"
             defaultValue={`${year}`}
           >
-            <Select.Trigger showIcon={false} className="w-fit py-1.5 text-sm">
+            <Select.Trigger
+              size="sm"
+              showIcon={false}
+              className="w-fit py-1.5 text-sm"
+            >
               <Select.Value placeholder="Trocar ano" />
             </Select.Trigger>
-            <Select.Content className="max-h-64">
+            <Select.Content size="sm" className="max-h-64">
               {YEARS.map((a) => (
                 <Select.Item key={a} value={`${a}`}>
                   {a}

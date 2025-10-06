@@ -107,7 +107,7 @@ export function CopyCampaignsModal({ children }: { children: JSX.Element }) {
     <Dialog.Root>
       <Dialog.Trigger asChild>{children}</Dialog.Trigger>
 
-      <Dialog.Content className="[--dialog-content-max-width:_38rem]">
+      <Dialog.Content className="[--dialog-content-max-width:38rem]">
         <Dialog.Header>
           <Dialog.Title>Copiar campanhas</Dialog.Title>
           <Dialog.Description>

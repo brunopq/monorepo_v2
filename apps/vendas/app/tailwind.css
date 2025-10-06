@@ -1,8 +1,14 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import "iboti-ui/config";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --radius: 0.5rem
   }
+}
+
+@theme {
+  --font-sans: Sora, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }

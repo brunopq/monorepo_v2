@@ -49,7 +49,7 @@ export function EditCampaignModal({
     <Dialog.Root>
       <Dialog.Trigger asChild>{children}</Dialog.Trigger>
 
-      <Dialog.Content className="[--dialog-content-max-width:_38rem]">
+      <Dialog.Content className="[--dialog-content-max-width:38rem]">
         <Dialog.Title>
           Editar campanha{" "}
           <strong className="font-semibold text-primary-600">
