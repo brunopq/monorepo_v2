@@ -10,7 +10,6 @@ import {
   Edit,
   EllipsisVertical,
   Plus,
-  ShieldOffIcon,
   Trash2,
   UserCheckIcon,
   UserXIcon,
