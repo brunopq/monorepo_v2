@@ -48,14 +48,21 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const { year, month } = extractDateFromRequest(request)
 
-  const [data, userData, newClients, commissions, userComissions] =
-    await Promise.all([
-      SalesService.getByMonth(month, year),
-      SalesService.getByMonthAndUser(month, year, user.id),
-      SalesService.getNewClientsByMonth(month, year),
-      SalesService.getCommissionsByMonth(month, year),
-      SalesService.getUserSales(month, year, user.id),
-    ])
+  const [
+    data,
+    userData,
+    newClients,
+    commissions,
+    userComissions,
+    indicationsCount,
+  ] = await Promise.all([
+    SalesService.getByMonth(month, year),
+    SalesService.getByMonthAndUser(month, year, user.id),
+    SalesService.getNewClientsByMonth(month, year),
+    SalesService.getCommissionsByMonth(month, year),
+    SalesService.getUserSales(month, year, user.id),
+    SalesService.getUserIndications(year, user.id),
+  ])
 
   const repurchase: { total: number; user: number } = { total: 0, user: 0 }
 
@@ -86,6 +93,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       newClients,
       clients,
       repurchase,
+      indicationsCount,
       commissions: commissions.map((c) => {
         const userSellCount =
           userComissions.find((uc) => uc.campaign.id === c.campaign.id)
@@ -418,20 +426,14 @@ export default function App({ loaderData }: Route.ComponentProps) {
             />
           </div>
 
-          <div className="col-span-2 grid grid-cols-subgrid gap-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-sm">
-            <h3 className="col-span-2 text-center text-lg">Recompras</h3>
-            <hr className="col-span-2 mb-2 border-primary-400 border-dashed" />
+          <div className="col-span-2 rounded-md border border-primary-200 bg-primary-100 p-6 shadow-sm">
+            <header className="mb-6 border-primary-400 border-b border-dashed pb-2">
+              <h3 className="text-center text-lg">Suas indicações</h3>
+            </header>
 
-            <div className="flex flex-col items-center justify-between gap-6">
-              Você
+            <div className="text-center">
               <strong className="text-3xl text-primary-700">
-                {data.repurchase.user}
-              </strong>
-            </div>
-            <div className="flex flex-col items-center justify-between gap-6">
-              Total
-              <strong className="text-3xl text-primary-700">
-                {data.repurchase.total}
+                {data.indicationsCount}
               </strong>
             </div>
           </div>

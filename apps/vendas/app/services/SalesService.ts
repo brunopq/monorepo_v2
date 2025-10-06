@@ -1,8 +1,8 @@
-import { endOfMonth, isSameMonth, startOfMonth } from "date-fns"
-import { and, between, eq, sql, sum } from "drizzle-orm"
+import { endOfMonth, endOfYear, isSameMonth, startOfMonth, startOfYear } from "date-fns"
+import { and, between, eq, or, sql, sum } from "drizzle-orm"
 
 import { db } from "~/db"
-import { campaign, newSaleSchema, sale } from "~/db/schema"
+import { campaign, newSaleSchema, sale, user } from "~/db/schema"
 import type {
   Sale as DbSale,
   NewSale as DbNewSale,
@@ -11,7 +11,7 @@ import type {
 import CampaignService from "./CampaignService"
 import { utc } from "@date-fns/utc"
 import { validateDate } from "~/lib/verifyMonthAndYear"
-import { s } from "node_modules/vite/dist/node/types.d-aGj9QkWt"
+import UserService from "./UserService"
 
 export type DomainSale = DbSale
 export type NewSale = DbNewSale
@@ -189,6 +189,39 @@ class SalesService {
       )
 
     return totalValue
+  }
+
+  async getUserIndications(year: number, userId: string) {
+    const date = validateDate(1, year)
+
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, userId),
+    })
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    const [{ indicationsCount }] = await db
+      .select({
+        indicationsCount: sql<number>`cast(count(${sale.id}) as int)`,
+      })
+      .from(sale)
+      .where(
+        and(
+          or(
+            eq(sale.indication, user.name),
+            user.fullName ? eq(sale.indication, user.fullName) : undefined,
+          ),
+          between(
+            sale.date,
+            startOfYear(date).toDateString(),
+            endOfYear(date).toDateString(),
+          ),
+        ),
+      )
+
+    return indicationsCount || 0
   }
 
   async create(newSale: NewSale) {
