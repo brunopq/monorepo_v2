@@ -32,7 +32,7 @@ export default function FormGroup({
       {typeof children === "function" ? children(removeErrors) : children}
 
       {hasError && (
-        <label htmlFor={name} className="col-span-full text-red-600">
+        <label htmlFor={name} className="col-span-full text-red-600 text-sm">
           {/* biome-ignore lint/style/noNonNullAssertion: error is checked by hasError var */}
           {error!.message}
         </label>

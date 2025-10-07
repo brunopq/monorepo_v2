@@ -15,7 +15,7 @@ import { ErrorProvider, type ErrorT } from "~/context/ErrorsContext"
 
 import { toast } from "~/hooks/use-toast"
 
-import { Button } from "~/components/ui"
+import { Button } from "iboti-ui"
 
 import SaleFormFields, { saleFormSchema } from "~/components/SaleFormFields"
 
@@ -124,7 +124,7 @@ export default function Venda({ actionData }: Route.ComponentProps) {
       )}
 
       <header className="mb-4 flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon">
+        <Button asChild variant="ghost" icon>
           <Link to="/app">
             <ArrowLeft />
           </Link>
