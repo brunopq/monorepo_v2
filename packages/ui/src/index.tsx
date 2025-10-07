@@ -1,5 +1,6 @@
 export { Button, type ButtonProps } from "./components/button"
 export { Input, type InputProps } from "./components/input"
+export { Textarea, type TextareaProps } from "./components/textarea"
 export { Checkbox } from "./components/checkbox"
 import * as BaseDialog from "./components/dialog"
 import * as BaseSelect from "./components/select"
@@ -8,6 +9,7 @@ import * as BaseTooltip from "./components/tooltip"
 import * as ToastPrimitives from "./components/toast"
 import * as DropdownMenuPrimitive from "./components/dropdown-menu"
 import * as PopoverPrimitive from "./components/popover"
+import * as BaseRadioGroup from "./components/radio-group"
 
 export { PieChart } from "./components/charts/pie"
 
@@ -86,6 +88,10 @@ export const Popover = {
   Anchor: PopoverPrimitive.PopoverAnchor,
 }
 
+export const RadioGroup = {
+  Root: BaseRadioGroup.RadioGroup,
+  Item: BaseRadioGroup.RadioGroupItem,
+}
 
 export const useToast = ToastPrimitives.useToast
 export const toast = ToastPrimitives.toast
