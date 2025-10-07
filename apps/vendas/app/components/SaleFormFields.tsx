@@ -1,8 +1,22 @@
 import { useFetcher } from "react-router"
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { format, parse } from "date-fns"
 import { utc } from "@date-fns/utc"
 import { z } from "zod"
+
+import {
+  Input,
+  Select,
+  Checkbox,
+  RadioGroup,
+  Textarea,
+  type InputProps,
+  Popover,
+  Button,
+} from "iboti-ui"
+import { BrlInput } from "./ui"
+
+import { brl } from "~/lib/formatters"
 
 import { captationTypeSchema } from "~/db/schema"
 
@@ -13,26 +27,21 @@ import type { DomainSale } from "~/services/SalesService"
 import type { loader as campaignLoader } from "~/routes/app.campaigns"
 import type { loader as originLoader } from "~/routes/app.origins"
 
-import { Input, Select, Checkbox, RadioGroup, BrlInput, Textarea } from "./ui"
 import FormGroup from "./FormGroup"
-import { brl } from "~/lib/formatters"
 
 export const saleFormSchema = z.object({
-  date: z
-    .string({ required_error: "Insira uma data" })
-    .date("Data mal formatada"),
+  date: z.string("Insira uma data").date("Data mal formatada"),
   seller: z.string({ message: "Seller is required" }),
-  campaign: z.string({ required_error: "Selecione a campanha da venda" }),
-  origin: z.string({ required_error: "Selecione uma origem para a venda" }),
+  campaign: z.string("Selecione a campanha da venda"),
+  origin: z.string("Selecione uma origem para a venda"),
   captationType: captationTypeSchema({
-    required_error: "Escolha um tipo de captação",
-    invalid_type_error: "Tipo de captação inválido",
+    error: "Escolha um tipo de captação válido",
   }),
   client: z
-    .string({ required_error: "Insira o nome do cliente" })
+    .string("Insira o nome do cliente")
     .min(1, "Insira o nome do cliente"),
   adverseParty: z
-    .string({ required_error: "Insira a parte adversa" })
+    .string("Insira a parte adversa")
     .min(1, "Insira a parte adversa"),
   isRepurchase: z.coerce.boolean().default(false),
   estimatedValue: z
@@ -162,12 +171,10 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
             name="captationType"
             className="flex flex-1 gap-4"
           >
-            {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
             <label className="flex items-center gap-2">
               <RadioGroup.Item value="ATIVO" />
               Ativa
             </label>
-            {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
             <label className="flex items-center gap-2">
               <RadioGroup.Item value="PASSIVO" />
               Passiva
@@ -181,7 +188,6 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
         name="isRepurchase"
         label="É recompra"
       >
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
         <label className="flex flex-1 items-center gap-2">
           Sim
           <Checkbox
@@ -235,10 +241,11 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
       </FormGroup>
 
       <FormGroup name="indication" label="Indicado por:">
-        <Input
+        <SuggestionsInput
           placeholder="Nome"
           name="indication"
           defaultValue={defaults?.indication ?? undefined}
+          options={["Fulano", "Ciclano", "Beltrano"]}
         />
       </FormGroup>
 
@@ -251,5 +258,180 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
         />
       </FormGroup>
     </>
+  )
+}
+
+type SuggestionsInputProps = InputProps & {
+  options: string[]
+}
+
+function SuggestionsInput({ options, ...props }: SuggestionsInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const optionsRef = useRef<HTMLButtonElement[]>([])
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const [inputValue, setInputValue] = useState(
+    // only allow strings
+    props.defaultValue?.toString() || "",
+  )
+
+  // Normalize text by removing diacritics, spaces, and converting to lowercase
+  const normalizeText = (text: string) => {
+    return (
+      text
+        .normalize("NFD")
+        // biome-ignore lint/suspicious/noMisleadingCharacterClass: <explanation>
+        .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+        .replace(/\s+/g, "") // Remove spaces
+        .toLowerCase()
+    )
+  }
+
+  // Filter options based on input
+  const filteredOptions = options.filter((option) => {
+    if (!inputValue.trim()) return true
+    const normalizedOption = normalizeText(option)
+    const normalizedInput = normalizeText(inputValue)
+    return normalizedOption.includes(normalizedInput)
+  })
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestionsOpen) return
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault()
+        // Focus first option
+        optionsRef.current[0]?.focus()
+        break
+      case "Tab":
+        e.preventDefault()
+        // Focus first option
+        optionsRef.current[0]?.focus()
+        break
+      case "Escape":
+        setSuggestionsOpen(false)
+        inputRef.current?.focus()
+        break
+      case "Enter":
+        if (filteredOptions.length > 0 && suggestionsOpen) {
+          e.preventDefault()
+          handleSelect(filteredOptions[0])
+        }
+        break
+    }
+  }
+
+  const handleOptionKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    e.preventDefault()
+    switch (e.key) {
+      case "ArrowDown": {
+        const nextIndex = (index + 1) % filteredOptions.length
+        optionsRef.current[nextIndex]?.focus()
+        break
+      }
+      case "ArrowUp": {
+        const prevIndex = index === 0 ? filteredOptions.length - 1 : index - 1
+        optionsRef.current[prevIndex]?.focus()
+        break
+      }
+      case "Tab": {
+        inputRef.current?.focus()
+        setSuggestionsOpen(true)
+        break
+      }
+      case "Enter":
+        handleSelect(filteredOptions[index])
+        break
+      case "Escape":
+        setSuggestionsOpen(false)
+        inputRef.current?.focus()
+        break
+    }
+  }
+
+  const handleSelect = (option: string) => {
+    // Update the input value directly
+    if (inputRef.current) {
+      inputRef.current.value = option
+      // Trigger change event for form handling
+      const event = new Event("input", { bubbles: true })
+      inputRef.current.dispatchEvent(event)
+    }
+    setInputValue(option)
+    setSuggestionsOpen(false)
+    inputRef.current?.focus()
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value)
+    setSuggestionsOpen(true)
+    props.onInput?.(e)
+  }
+
+  const handleFocus = () => {
+    setSuggestionsOpen(true)
+  }
+
+  const handleBlur = (e: React.FocusEvent) => {
+    // Check if focus is moving to one of our option buttons
+    const relatedTarget = e.relatedTarget as HTMLElement
+    if (relatedTarget?.closest("[data-suggestion-option]")) {
+      return // Don't close if focusing on an option
+    }
+    setSuggestionsOpen(false)
+  }
+
+  useEffect(() => {
+    if (filteredOptions.length === 0) {
+      setSuggestionsOpen(false)
+    }
+  }, [filteredOptions])
+
+  return (
+    <Popover.Root
+      modal={false}
+      open={suggestionsOpen}
+      onOpenChange={setSuggestionsOpen}
+    >
+      <Popover.Anchor>
+        <Input
+          ref={inputRef}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          onInput={handleInputChange}
+          autoComplete="off"
+          {...props}
+        />
+      </Popover.Anchor>
+
+      <Popover.Content
+        align="start"
+        className="flex max-h-60 flex-col overflow-auto p-1"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        {filteredOptions.map((option, index) => (
+          <Button
+            key={option}
+            ref={(el) => {
+              if (el) optionsRef.current[index] = el
+            }}
+            className="justify-start rounded-xs font-normal text-base"
+            size="sm"
+            variant="ghost"
+            data-suggestion-option
+            onKeyDown={(e) => handleOptionKeyDown(e, index)}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelect(option)}
+          >
+            {option}
+          </Button>
+        ))}
+      </Popover.Content>
+    </Popover.Root>
   )
 }

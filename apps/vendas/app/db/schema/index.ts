@@ -101,9 +101,9 @@ export const saleRelations = relations(sale, ({ one }) => ({
 //
 // types and schemas
 
-export const captationTypeSchema = (params?: z.RawCreateParams) =>
+export const captationTypeSchema = (params?: z.core.$ZodEnumParams) =>
   z.enum(captationTypes.enumValues, params)
-export const userRoleSchmea = (params?: z.RawCreateParams) =>
+export const userRoleSchmea = (params?: z.core.$ZodEnumParams) =>
   z.enum(userRoles.enumValues, params)
 
 export const userSchema = createSelectSchema(user)
@@ -130,5 +130,5 @@ export type NewCampaign = z.infer<typeof newCampaignSchema>
 export type Origin = z.infer<typeof originSchema>
 export type NewOrigin = z.infer<typeof newOriginSchema>
 
-export type Sale = z.infer<typeof saleSchema>
-export type NewSale = z.infer<typeof newSaleSchema>
+export type Sale = typeof sale.$inferSelect
+export type NewSale = typeof sale.$inferInsert

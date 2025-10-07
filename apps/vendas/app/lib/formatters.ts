@@ -9,9 +9,15 @@ export const currencyToNumber = (currency: string): number => {
   return Number(currency.replace(/\D/g, "")) / 100
 }
 
-// Transforms a string formatted by `brl` into a
-// numeric string value from postgres
-// R$ 123.456,78  ==>  123456.78
+/**
+ * Transforms a string formatted by `brl` into a
+ * numeric string value from postgres
+ * 
+ * @see {@link brl}
+ * 
+ * @example 
+ * currencyToNumeric("R$ 123.456,78") // 123456.78
+ **/
 export const currencyToNumeric = (currency: string): string => {
   const cleanedCurrency = currency.replace(/[R$\s]/g, "")
 
