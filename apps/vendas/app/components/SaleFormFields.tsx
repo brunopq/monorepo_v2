@@ -48,7 +48,9 @@ export type SaleFormFieldsProps = {
 }
 
 export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
-  const { referrers, loading: referrersLoading } = useReferrers()
+  const { referrers, loading: referrersLoading } = useReferrers({
+    includeUsers: true,
+  })
   const { origins, loading: originsLoading } = useOrigins(false)
 
   let date = useMemo(() => {

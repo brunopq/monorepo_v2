@@ -1,3 +1,4 @@
+import z from "zod"
 import { endOfYear, startOfYear } from "date-fns"
 import { and, between, eq, isNotNull, or, sql } from "drizzle-orm"
 
@@ -6,11 +7,18 @@ import { validateDate } from "~/lib/verifyMonthAndYear"
 import { db } from "~/db"
 import { sale } from "~/db/schema"
 
+const getReferrersOptionsSchema = z.object({
+  year: z.number(),
+  includeUsers: z.boolean().default(false),
+})
+
+export type GetReferrersOptions = z.infer<typeof getReferrersOptionsSchema>
+
 class IndicationService {
   async getIndications(year: number) {
     const date = validateDate(1, year)
 
-    return await db
+    const referrals = await db
       .select({
         referrerName: sale.indication,
         totalIndications: sql<number>`count(${sale.id})`.as(
@@ -19,14 +27,22 @@ class IndicationService {
       })
       .from(sale)
       .where(
-        between(
-          sale.date,
-          startOfYear(date).toDateString(),
-          endOfYear(date).toDateString(),
+        and(
+          isNotNull(sale.indication),
+          between(
+            sale.date,
+            startOfYear(date).toDateString(),
+            endOfYear(date).toDateString(),
+          ),
         ),
       )
       .groupBy(sale.indication)
       .orderBy(sql`total_indications desc`)
+
+    return referrals.filter((r) => r.referrerName !== null) as {
+      referrerName: string
+      totalIndications: number
+    }[]
   }
 
   async getUserIndications(year: number, userId: string) {
@@ -62,8 +78,8 @@ class IndicationService {
     return indicationsCount || 0
   }
 
-  async getReferrers(year: number) {
-    const date = validateDate(1, year)
+  async getReferrers(options: GetReferrersOptions) {
+    const date = validateDate(1, options.year)
 
     const referrers = await db
       .selectDistinct({
@@ -80,6 +96,22 @@ class IndicationService {
           ),
         ),
       )
+
+    if (options.includeUsers) {
+      // TODO: I know this is bad, but it is fast
+      const users = await db.query.user.findMany({
+        columns: {
+          fullName: true,
+        },
+        where: (u, { isNotNull }) => isNotNull(u.fullName),
+      })
+
+      referrers.push(
+        ...users.map((u) => ({
+          referrerName: u.fullName,
+        })),
+      )
+    }
 
     return referrers.filter((r) => r.referrerName !== null) as {
       referrerName: string
