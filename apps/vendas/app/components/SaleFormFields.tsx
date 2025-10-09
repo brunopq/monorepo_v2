@@ -15,6 +15,7 @@ import type { DomainCampaign } from "~/services/CampaignService"
 import type { DomainOrigin } from "~/services/OriginService"
 import type { DomainSale } from "~/services/SalesService"
 
+import { useReferrers } from "~/hooks/data/useReferrers"
 import type { loader as campaignLoader } from "~/routes/app.campaigns"
 import type { loader as originLoader } from "~/routes/app.origins"
 
@@ -237,8 +238,9 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
         <AutocompleteInput
           placeholder="Nome"
           name="indication"
+          disabled={referrersLoading}
           defaultValue={defaults?.indication ?? undefined}
-          options={["Fulano", "Ciclano", "Beltrano"]}
+          options={referrers?.map((r) => r.referrerName) || []}
         />
       </FormGroup>
 
