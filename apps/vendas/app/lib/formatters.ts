@@ -42,3 +42,16 @@ export const phone = (value: string) => {
     .replace(/(\d{5})(\d)/, "$1-$2")
     .replace(/(-\d{4})\d+?$/, "$1")
 }
+
+
+// IDK if this one is a "formatter", but it fits
+export const normalizeText = (text: string) => {
+  return (
+    text
+      .normalize("NFD")
+      // biome-ignore lint/suspicious/noMisleadingCharacterClass: <explanation>
+      .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+      .replace(/\s+/g, "") // Remove spaces
+      .toLowerCase()
+  )
+}
