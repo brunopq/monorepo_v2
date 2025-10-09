@@ -1,10 +1,10 @@
-import { useFetcher } from "react-router"
-import { useEffect } from "react"
+import { useMemo } from "react"
 import { format, parse } from "date-fns"
 import { utc } from "@date-fns/utc"
 import { z } from "zod"
 
 import { Input, Select, Checkbox, RadioGroup, Textarea } from "iboti-ui"
+import { AutocompleteInput } from "./AutocompleteInput"
 import { BrlInput } from "./ui"
 
 import { brl } from "~/lib/formatters"
@@ -12,15 +12,13 @@ import { brl } from "~/lib/formatters"
 import { captationTypeSchema } from "~/db/schema"
 
 import type { DomainCampaign } from "~/services/CampaignService"
-import type { DomainOrigin } from "~/services/OriginService"
 import type { DomainSale } from "~/services/SalesService"
 
 import { useReferrers } from "~/hooks/data/useReferrers"
-import type { loader as campaignLoader } from "~/routes/app.campaigns"
-import type { loader as originLoader } from "~/routes/app.origins"
+import { useCampaigns } from "~/hooks/data/useCampaigns"
+import { useOrigins } from "~/hooks/data/useOrigins"
 
 import FormGroup from "./FormGroup"
-import { AutocompleteInput } from "./AutocompleteInput"
 
 export const saleFormSchema = z.object({
   date: z.string("Insira uma data").date("Data mal formatada"),
@@ -50,34 +48,27 @@ export type SaleFormFieldsProps = {
 }
 
 export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
-  const campaignsFetcher = useFetcher<typeof campaignLoader>()
-  const originsFetcher = useFetcher<typeof originLoader>()
   const { referrers, loading: referrersLoading } = useReferrers()
+  const { origins, loading: originsLoading } = useOrigins(false)
 
-  const campaignData = campaignsFetcher.data
-  const originData = originsFetcher.data
+  let date = useMemo(() => {
+    return defaults?.date
+      ? parse(defaults.date, "yyyy-MM-dd", new Date(), { in: utc })
+      : new Date()
+  }, [defaults?.date])
 
-  let campaigns: DomainCampaign[] = []
-  let origins: DomainOrigin[] = []
-  let date = defaults?.date
-    ? parse(defaults.date, "yyyy-MM-dd", new Date(), { in: utc })
-    : new Date()
+  const {
+    data,
+    loading: campaignsLoading,
+    refetch: refetchCampaigns,
+  } = useCampaigns(date)
 
-  if (campaignData) {
-    campaigns = campaignData.campaigns
-    date = new Date(campaignData.date)
+  let cc: DomainCampaign[] = []
+
+  if (data) {
+    cc = data.campaigns
+    date = new Date(data.date)
   }
-  if (originData) {
-    origins = originData.origins
-  }
-
-  useEffect(() => {
-    const date = defaults?.date ?? new Date()
-    campaignsFetcher.load(
-      `/app/campaigns?date=${format(date, "yyyy-MM-dd", { in: utc })}`,
-    )
-    originsFetcher.load("/app/origins?includeInactive=false")
-  }, [originsFetcher.load, campaignsFetcher.load, defaults?.date])
 
   return (
     <>
@@ -113,7 +104,7 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
         {(removeErrors) => (
           <Select.Root
             defaultValue={defaults?.campaign}
-            disabled={campaignsFetcher.state === "loading"}
+            disabled={campaignsLoading}
             onValueChange={removeErrors}
             name="campaign"
           >
@@ -121,7 +112,7 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
               <Select.Value placeholder="Selecione..." />
             </Select.Trigger>
             <Select.Content>
-              {campaigns.map((c) => (
+              {cc.map((c) => (
                 <Select.Item key={c.id} value={c.id}>
                   {c.name}
                 </Select.Item>
@@ -135,7 +126,7 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
         {(removeErrors) => (
           <Select.Root
             defaultValue={defaults?.origin ?? undefined}
-            disabled={originsFetcher.state === "loading"}
+            disabled={originsLoading}
             onValueChange={removeErrors}
             name="origin"
           >
@@ -216,16 +207,14 @@ export default function SaleFormFields({ defaults }: SaleFormFieldsProps) {
       <FormGroup name="date" label="Data da venda">
         {(removeErrors) => (
           <Input
-            disabled={campaignsFetcher.state === "loading"}
+            disabled={campaignsLoading}
             value={format(date, "yyyy-MM-dd", { in: utc })}
             onChange={(e) => {
               removeErrors()
               const newDate = e.target.valueAsDate
 
               if (!newDate) return
-              campaignsFetcher.load(
-                `/app/campaigns?date=${format(newDate, "yyyy-MM-dd", { in: utc })}`,
-              )
+              refetchCampaigns(newDate)
             }}
             name="date"
             id="date"
