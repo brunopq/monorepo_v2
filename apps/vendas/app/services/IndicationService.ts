@@ -97,6 +97,13 @@ class IndicationService {
         ),
       )
 
+    const referrersSet = new Set<string>()
+    for (const r of referrers) {
+      if (r.referrerName) {
+        referrersSet.add(r.referrerName)
+      }
+    }
+
     if (options.includeUsers) {
       // TODO: I know this is bad, but it is fast
       const users = await db.query.user.findMany({
@@ -106,16 +113,21 @@ class IndicationService {
         where: (u, { isNotNull }) => isNotNull(u.fullName),
       })
 
-      referrers.push(
-        ...users.map((u) => ({
-          referrerName: u.fullName,
-        })),
-      )
+      for (const user of users) {
+        if (user.fullName) {
+          referrersSet.add(user.fullName)
+        }
+      }
     }
 
-    return referrers.filter((r) => r.referrerName !== null) as {
-      referrerName: string
-    }[]
+    return [...referrersSet].map((r) => ({ referrerName: r }))
+  }
+
+  async renameIndications(oldName: string, newName: string) {
+    await db
+      .update(sale)
+      .set({ indication: newName })
+      .where(eq(sale.indication, oldName))
   }
 }
 export default new IndicationService()
