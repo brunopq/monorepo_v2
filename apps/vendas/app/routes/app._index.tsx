@@ -40,6 +40,7 @@ import { HorizontalBarChart } from "~/components/charts/horizontal-bar"
 import { DateSelection } from "~/components/DateSelection"
 import { toast } from "~/hooks/use-toast"
 import UserService from "~/services/UserService"
+import IndicationService from "~/services/IndicationService"
 
 const maybeNumber = z.coerce.number().nullable()
 
@@ -61,7 +62,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     SalesService.getNewClientsByMonth(month, year),
     SalesService.getCommissionsByMonth(month, year),
     SalesService.getUserSales(month, year, user.id),
-    SalesService.getUserIndications(year, user.id),
+    IndicationService.getUserIndications(year, user.id),
   ])
 
   const repurchase: { total: number; user: number } = { total: 0, user: 0 }

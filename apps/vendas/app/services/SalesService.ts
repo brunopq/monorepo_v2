@@ -191,39 +191,6 @@ class SalesService {
     return totalValue
   }
 
-  async getUserIndications(year: number, userId: string) {
-    const date = validateDate(1, year)
-
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, userId),
-    })
-
-    if (!user) {
-      throw new Error("User not found")
-    }
-
-    const [{ indicationsCount }] = await db
-      .select({
-        indicationsCount: sql<number>`cast(count(${sale.id}) as int)`,
-      })
-      .from(sale)
-      .where(
-        and(
-          or(
-            eq(sale.indication, user.name),
-            user.fullName ? eq(sale.indication, user.fullName) : undefined,
-          ),
-          between(
-            sale.date,
-            startOfYear(date).toDateString(),
-            endOfYear(date).toDateString(),
-          ),
-        ),
-      )
-
-    return indicationsCount || 0
-  }
-
   async create(newSale: NewSale) {
     const campaign = await CampaignService.getById(newSale.campaign)
 

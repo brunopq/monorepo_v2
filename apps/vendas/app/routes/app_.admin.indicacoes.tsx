@@ -74,7 +74,7 @@ export default function Indicacoes({ loaderData }: Route.ComponentProps) {
               // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
               <Table.Row key={index}>
                 <Table.Cell>{index + 1}º</Table.Cell>
-                <Table.Cell>{indication.personName}</Table.Cell>
+                <Table.Cell>{indication.referrerName}</Table.Cell>
                 <Table.Cell>{indication.totalIndications}</Table.Cell>
               </Table.Row>
             ))}
